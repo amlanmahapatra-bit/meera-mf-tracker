@@ -2,7 +2,7 @@ import { isCronAuthorized, unauthorized } from "@/lib/auth";
 import { withRun } from "@/lib/pipeline/run";
 import { runWeekly } from "@/lib/pipeline/weekly";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 /** Vercel Cron calls this on Saturday mornings (India time). Builds the report, then emails it. Needs "Authorization: Bearer <CRON_SECRET>". */
 export async function GET(req: Request) {

@@ -186,7 +186,7 @@ export function allowedNumbers(facts: unknown): Set<string> {
 }
 
 const stripQuotes = (s: string) => s.replace(/["“”][^"“”]*["“”]/g, " ");
-const sentenceCount = (s: string) => s.trim().split(/(?<=[.!?])\s+(?=[A-Z"“'])/).filter(Boolean).length;
+const sentenceCount = (s: string) => stripQuotes(s).trim().split(/(?<=[.!?])\s+(?=[A-Z"“'])/).filter(Boolean).length;
 const norm = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
 
 export function validateAnswer(raw: unknown, input: ReportInput, facts: unknown): ValidationResult {

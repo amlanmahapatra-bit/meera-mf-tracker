@@ -124,7 +124,7 @@ export async function geminiGenerate(system: string, user: string, opts: Generat
   }
   const list = opts.models ?? AI_MODELS;
   const order = opts.preferModel && list.includes(opts.preferModel) ? [opts.preferModel, ...list.filter((m) => m !== opts.preferModel)] : list;
-  const deadline = opts.deadline ?? Date.now() + 55_000;
+  const deadline = opts.deadline ?? Date.now() + 85_000;
   const problems: string[] = [];
   for (const model of order) {
     try {
@@ -152,19 +152,19 @@ const addUsage = (a: AiUsage, b: AiUsage): AiUsage => ({
 });
 
 /**
- * Asks for the report text. Up to two attempts: if the first answer fails validation, the second is told
+ * Asks for the report text. Up to three attempts: if an answer fails validation, the next one is told
  * exactly what was wrong. Never throws; the caller falls back to the template and records the reason.
  */
 export async function generateReportText(input: ReportInput, language: ReportLanguage = "en"): Promise<GeminiReportOutcome> {
   const facts = buildFacts(input);
   const system = buildSystemPrompt(language);
   const base = `FACTS:\n${JSON.stringify(facts, null, 1)}`;
-  const deadline = Date.now() + 55_000; // whole AI step, so the weekly job fits a serverless time limit
+  const deadline = Date.now() + 85_000; // whole AI step, so the weekly job fits a serverless time limit
   let feedback = "";
   let lastReason = "unknown";
   let model: string | undefined;
   let usage = emptyUsage();
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     try {
       const out = await geminiGenerate(system, base + feedback, { jsonSchema: true, deadline, preferModel: model });
       model = out.model;
@@ -186,5 +186,5 @@ export async function generateReportText(input: ReportInput, language: ReportLan
       break; // every model failed, credits ran out, or time is up; retrying would not help
     }
   }
-  return { ok: false, reason: lastReason, attempts: 2, usage };
+  return { ok: false, reason: lastReason, attempts: 3, usage };
 }

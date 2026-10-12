@@ -117,11 +117,11 @@ describe("generateReportText (simulated OpenRouter)", () => {
     expect(secondPrompt).toContain("9.9");
   });
 
-  it("gives up after a second invalid answer", async () => {
+  it("gives up after a third invalid answer", async () => {
     fetchMock.mockImplementation(async () => ok({ ...goodAnswer, verdict: "Maybe sell?" }));
     const r = await generateReportText(input);
     expect(r.ok).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("treats non-JSON text as a failed attempt", async () => {
