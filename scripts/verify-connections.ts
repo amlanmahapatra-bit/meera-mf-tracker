@@ -47,15 +47,15 @@ const FUNDS: Record<string, string> = {
   "118482": "Bandhan Nifty 50 (Large Cap)",
   "147622": "Motilal Nifty Midcap 150 (Mid Cap)",
   "147623": "Motilal Nifty Smallcap 250 (Small Cap)",
-  "120062": "HSBC Short Duration (Debt)",
+  "119016": "HDFC Short Term (Debt)",
   "150751": "Axis NASDAQ 100 FoF (International)",
 };
 
-// Candidate Yahoo Finance symbols. We test them all and report which work.
+// Yahoo Finance symbols. Nifty Smallcap 100 is intentionally absent: Yahoo gives only one price for it,
+// so the app shows Smallcap 250 for small caps and says so (see README limitations).
 const INDEX_CANDIDATES: Record<string, string> = {
   "Nifty 50": "^NSEI",
   "Nifty Midcap 150": "NIFTYMIDCAP150.NS",
-  "Nifty Smallcap 100": "^CNXSC",
   "Nifty Smallcap 250": "NIFTYSMLCAP250.NS",
   "Nasdaq 100": "^NDX",
 };
