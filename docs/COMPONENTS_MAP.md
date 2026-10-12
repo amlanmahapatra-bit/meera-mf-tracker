@@ -3,6 +3,14 @@
 How Trackerr turns raw fund prices into a plain-language Saturday report.
 Everything numeric is computed by code; Gemini only explains the numbers.
 
+## The one-page picture (start here)
+
+![Trackerr Components Map](components-map.png)
+
+Left to right: **1. get live data** (mfapi.in, Yahoo Finance, GNews with a Google News backup) &rarr; **2. save it** (Supabase) &rarr; **3. do the maths** (plain, tested code) &rarr; **4. explain in plain words** (Gemini Flash, checked, with a template fallback) &rarr; **5. deliver to Meera** (website, weekly report page, Saturday email with PDF, "Ask about my money" chat, add/remove fund form). Timers run it every day and every Saturday; a safety net re-sends a missed email. Exports for submission: [`components-map.png`](components-map.png) and [`components-map.pdf`](components-map.pdf) (source: [`map/components-map.html`](map/components-map.html)).
+
+The detailed diagram and the component-by-component table below are for readers who want the technical depth.
+
 ## Data flow
 
 ```mermaid
@@ -66,7 +74,7 @@ flowchart TB
   API -->|"validate + backfill"| MF
 ```
 
-_Exports for submission: [`components-map.png`](components-map.png) and [`components-map.pdf`](components-map.pdf) (rendered from the diagram above with Mermaid CLI)._
+_This detailed diagram is the technical view; the simple one-page version above is the file to submit._
 
 ## Components
 
