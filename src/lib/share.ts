@@ -5,7 +5,7 @@
 import { fmtDate, fmtNav, fmtPct } from "./format";
 import type { ReportJson } from "./report-types";
 
-const APP_NAME = "Meera's Money Check";
+const APP_NAME = "Trackerr";
 
 export function buildShareText(report: ReportJson): string {
   const lines: string[] = [];

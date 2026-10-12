@@ -29,7 +29,7 @@ describe("buildShareText", () => {
   it("includes the overall verdict, the week and the sender line", () => {
     expect(t).toContain("week ending 10 Oct 2026");
     expect(t).toContain("Overall: No action needed. All good.");
-    expect(t).toContain("Sent from Meera's Money Check");
+    expect(t).toContain("Sent from Trackerr");
   });
 });
 

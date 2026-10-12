@@ -68,7 +68,7 @@ async function callModel(model: string, requestBody: Record<string, unknown>, de
     try {
       res = await fetch(ENDPOINT, {
         method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-OpenRouter-Title": "Meera's Money Check" },
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-OpenRouter-Title": "Trackerr" },
         body: JSON.stringify({ ...requestBody, model }),
         signal: AbortSignal.timeout(Math.min(40_000, remaining)),
       });

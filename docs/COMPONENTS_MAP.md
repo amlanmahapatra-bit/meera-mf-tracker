@@ -1,6 +1,6 @@
 # Components Map
 
-How Meera's Money Check turns raw fund prices into a plain-language Saturday report.
+How Trackerr turns raw fund prices into a plain-language Saturday report.
 Everything numeric is computed by code; Gemini only explains the numbers.
 
 ## Data flow

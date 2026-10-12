@@ -10,7 +10,7 @@ export default function SiteHeader() {
       <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5 font-bold tracking-tight text-ink">
           <BrandMark />
-          <span className="text-[17px] leading-none">Meera&apos;s Money Check</span>
+          <span className="text-[17px] leading-none">Trackerr</span>
         </Link>
         <div className="flex items-center gap-2">
           {/* NavLinks reads the current address, so it streams in behind a plain fallback (same links, no highlight). */}

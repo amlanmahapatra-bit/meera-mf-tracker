@@ -133,7 +133,7 @@ export function buildEmail(report: ReportJson, opts: { siteUrl?: string; test?: 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COLORS.page};"><tr><td align="center" style="padding:24px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;">
     <tr><td style="padding:0 4px 14px 4px;">
-      <div style="font-size:17px;font-weight:800;color:${COLORS.ink};">Meera&#39;s Money Check &middot; Weekly report</div>
+      <div style="font-size:17px;font-weight:800;color:${COLORS.ink};">Trackerr &middot; Weekly report</div>
       <div style="font-size:13px;color:${COLORS.ink3};">Week ending ${esc(fmtDate(report.weekEnding))}${opts.test ? " &middot; this is a test email" : ""}</div>
     </td></tr>
     <tr><td style="padding:0 0 16px 0;">
@@ -158,7 +158,7 @@ export function buildEmail(report: ReportJson, opts: { siteUrl?: string; test?: 
 
   const pct = (n: number | null) => fmtPct(n);
   const text = [
-    `Meera's Money Check - Weekly report${opts.test ? " (test email)" : ""}`,
+    `Trackerr - Weekly report${opts.test ? " (test email)" : ""}`,
     `Week ending ${fmtDate(report.weekEnding)}`,
     "",
     report.verdict.toUpperCase(),

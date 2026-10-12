@@ -20,7 +20,7 @@ export function readEmailConfig(env: Record<string, string | undefined> = proces
   if (to.length === 0) return { missing: "Email is not set up yet (REPORT_EMAIL_TO has no address)." };
   const bad = to.filter((a) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
   if (bad.length) return { missing: `These do not look like email addresses: ${bad.join(", ")}.` };
-  return { config: { apiKey, to, from: env.RESEND_FROM?.trim() || "Meera's Money Check <onboarding@resend.dev>", siteUrl: env.SITE_URL?.trim() || undefined } };
+  return { config: { apiKey, to, from: env.RESEND_FROM?.trim() || "Trackerr <onboarding@resend.dev>", siteUrl: env.SITE_URL?.trim() || undefined } };
 }
 
 export const maskEmail = (a: string): string => a.replace(/^(.).*(@.*)$/, "$1***$2");

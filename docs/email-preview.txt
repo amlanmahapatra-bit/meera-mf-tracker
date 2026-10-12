@@ -1,42 +1,115 @@
-Subject: Your Saturday money check-up: No action needed
+Subject: Your Saturday money report: No action needed
 
-Meera's Money Check
+Trackerr - Weekly report
 Week ending 10 Oct 2026
 
 NO ACTION NEEDED
-All your funds are doing fine and matching what they follow.
+All your funds are keeping pace with their markets and similar funds, so all are fine.
+
+THE WEEK AT A GLANCE
+- Bandhan Nifty 50 Index Fund (Large Cap): week +0.4%, month −3.9%, year so far −13.1%
+- Motilal Oswal Nifty Midcap 150 Index Fund (Mid Cap): week −0.2%, month −6.0%, year so far −2.6%
+- Motilal Oswal Nifty Smallcap 250 Index Fund (Small Cap): week −0.1%, month −4.7%, year so far +5.5%
+- HDFC Short Term Fund (Short Duration Debt): week +0.1%, month −0.2%, year so far +3.7%
+- Axis NASDAQ 100 US Specific Equity Passive FOF (International): week +2.3%, month +6.3%, year so far +29.7%
+
+HOW THE MARKETS DID, AND WHY
+- Nifty 50: +0.4% this week
+- Nifty Midcap 150: −0.2% this week
+- Nifty Smallcap 250: −0.1% this week
+- Nasdaq 100: +0.2% this week
+
+Indian large companies saw a gentle rise this week, with their market moving up 0.4%. Smaller companies stayed quiet, as mid-sized companies dipped 0.2% and small companies fell 0.1%. Overseas markets had a positive stretch, with the US technology market climbing 0.2% over the week. Overall, it was a peaceful week across most markets without any dramatic swings.
+
+Investors in India spent the week waiting to see upcoming inflation numbers and quarterly business reports.
+  Stock Market Cues This Week: CPI, Q2 Earnings, FPI Flows (Outlook Money) https://www.outlookmoney.com/invest/stock-market-cues-this-week-cpi-wpi-inflation-q2-earnings-fpi-flows
+
+Higher fuel prices kept a lid on enthusiasm across domestic businesses.
+  India's Inflation Likely Hit 5.4% in September as Oil Costs Bite (OilPrice) https://oilprice.com/Latest-Energy-News/World-News/Indias-Inflation-Likely-Hit-54-in-September-as-Oil-Costs-Bite.html
+
+Overseas markets reacted to moving interest rates and energy prices as traders watched central bank notes.
+  US stocks: US market opens lower as bond yields and oil rebound; Fed minutes in focus (The Economic Times) https://economictimes.indiatimes.com/markets/us-stocks/wall-street-guide/us-stocks-us-market-opens-lower-as-bond-yields-and-oil-rebound-fed-minutes-in-focus/articleshow/134767913.cms
+
+EACH FUND, IN DETAIL
 
 LARGE CAP: Bandhan Nifty 50 Index Fund
-  1. Your large company fund went up 0.4% this week, though it is still down 13.1% since January.
-  2. Over the past month, it did about the same as the Nifty 50, and about the same as similar funds.
-  3. All of this week's move came from the whole market, and I do not know what caused it.
+  1. Your large cap fund went up 0.4% this week, though it has fallen 13.1% since January.
+  2. Over the last month, it was about the same as the Nifty 50, and about the same as similar funds.
+  3. All of this week's rise came from the whole market, which fits the news "Stock Market Cues This Week: CPI, Q2 Earnings, FPI Flows" as big companies reacted to upcoming data.
+
+  Your large company fund picked up 0.4% this week. It remains down 13.1% since January after a tougher start to the year. Its results this month were about the same as the market and similar funds. The entire gentle rise matched the broader market step for step. The headline "Stock Market Cues This Week: CPI, Q2 Earnings, FPI Flows" fits as investors looked ahead to company reports. Over the past five years, it has gained an average of 5.8% each year. The fund remains steady with no signs of trouble.
+
   Price (NAV) ₹50.461 as of 9 Oct | This week +0.4% | Last month −3.9% | Year so far −13.1%
+  6 months: −4.6%
+  1 year: −9.7% (−9.7% a year)
+  3 years: +18.8% (+5.9% a year)
+  5 years: +32.4% (+5.8% a year)
 
 MID CAP: Motilal Oswal Nifty Midcap 150 Index Fund
-  1. Your mid size company fund fell 0.2% this week, and it has fallen 2.6% since January.
-  2. Over the past month, it did about the same as the Nifty Midcap 150, and about the same as similar funds.
-  3. Almost all of the move came from the whole market, and I do not know what caused it.
+  1. Your mid cap fund fell 0.2% this week, and it has fallen 2.6% since January.
+  2. Over the month, it did about the same as the Nifty Midcap 150, and about the same as similar funds.
+  3. The small move came from the market itself, and the headline "India's Inflation Likely Hit 5.4% in September as Oil Costs Bite" fits because high oil prices can weigh on mid-sized companies.
+
+  Your mid cap fund slipped 0.2% this week after a quiet few days. Since January, the fund has fallen 2.6%. It performed about the same as the market and similar funds this month. Almost the entire move was led by the broader market rather than the fund itself. The news "India's Inflation Likely Hit 5.4% in September as Oil Costs Bite" fits this slight dip. Over the last three years, it has gained an average of 13.7% each year. Everything is quiet and running normally here.
+
   Price (NAV) ₹39.2222 as of 9 Oct | This week −0.2% | Last month −6.0% | Year so far −2.6%
+  6 months: +3.3%
+  1 year: +0.2% (+0.2% a year)
+  3 years: +47.1% (+13.7% a year)
+  5 years: +87.8% (+13.4% a year)
 
 SMALL CAP: Motilal Oswal Nifty Smallcap 250 Index Fund
-  1. Your small company fund fell 0.1% this week, but it is still up 5.5% since January.
+  1. Your small cap fund slipped 0.1% this week, but it has gained 5.5% since January.
   2. Over the past month, it did about the same as the Nifty Smallcap 250, and about the same as similar funds.
-  3. Most of this week's small change came from the whole market, and I do not know what caused it.
+  3. The whole market drove the move, and the story "Crude oil, inflation data among top factors to drive stock market next week" may have kept smaller companies cautious.
+
+  Your small cap fund saw a very quiet week, dipping just 0.1%. Looking at the bigger picture, it has grown 5.5% since January. Its performance matched the market and stayed about the same as similar funds this month. The move came from general market feelings rather than anything inside the fund. Headlines like "Crude oil, inflation data among top factors to drive stock market next week" explain why investors were hesitant. Over the last three years, it has returned 13.4% on average each year. The fund is in good health and cruising along smoothly.
+
   Price (NAV) ₹39.3816 as of 9 Oct | This week −0.1% | Last month −4.7% | Year so far +5.5%
+  6 months: +13.5%
+  1 year: +3.5% (+3.5% a year)
+  3 years: +45.8% (+13.4% a year)
+  5 years: +83.0% (+12.8% a year)
 
 SHORT DURATION DEBT: HDFC Short Term Fund
-  1. Your short term debt fund went up 0.1% this week, and it has gained 3.7% since January.
-  2. Over the past month, it did about the same as similar funds.
-  3. I honestly do not know what caused this week's tiny move.
+  1. Your short duration debt fund went up 0.1% this week, and it has grown 3.7% since January.
+  2. Looking at the month, it did about the same as similar funds.
+  3. This calm move reflects debt markets, where the news "India's Inflation Likely Hit 5.4% in September as Oil Costs Bite" fits as investors watched rising living costs.
+
+  Your debt fund moved up by 0.1% over the week. It has provided steady progress, rising 3.7% since January. Over the last month, its path was about the same as similar funds. No separate market comparison is used here, but it matched its category well. News such as "India's Inflation Likely Hit 5.4% in September as Oil Costs Bite" kept bond markets focused on price trends. It has returned an average of 7.5% per year over the past three years. Your money here is doing its job calmly and steadily.
+
   Price (NAV) ₹35.4047 as of 9 Oct | This week +0.1% | Last month −0.2% | Year so far +3.7%
+  6 months: +2.7%
+  1 year: +5.0% (+5.0% a year)
+  3 years: +24.2% (+7.5% a year)
+  5 years: +37.4% (+6.6% a year)
 
 INTERNATIONAL: Axis NASDAQ 100 US Specific Equity Passive FOF  (Outperforming)
-  1. Your foreign fund went up 2.3% this week, bringing its gain since January to 29.7%.
-  2. Over the past month, it did about the same as the Nasdaq 100, and better than similar funds.
-  3. Most of the gain came from the whole market, and I do not know of any news that explains it.
+  1. Your US fund went up 2.3% this week, bringing its gains since January to 29.7%.
+  2. Over the month, it was a little worse than the Nasdaq 100, but better than similar funds.
+  3. Most of the jump came from the broader market, and the story "US stocks: US market opens lower as bond yields and oil rebound; Fed minutes in focus" fits how quickly foreign technology markets move.
+
+  Your overseas fund had a strong week, climbing 2.3%. Since January, it has delivered an impressive gain of 29.7%. This month, it was a little worse than its market comparison but did better than similar funds. The broader overseas market was the main engine behind this week's rise. Global news like "US stocks: US market opens lower as bond yields and oil rebound; Fed minutes in focus" shows how actively traders watch US cues. Over the last year, it has risen 33.6%. This fund continues to do its job well in your portfolio.
+
   Price (NAV) ₹31.5275 as of 9 Oct | This week +2.3% | Last month +6.3% | Year so far +29.7%
+  6 months: +28.1%
+  1 year: +33.6% (+33.6% a year)
+  3 years: +136.9% (+33.3% a year)
 
-Open the full check-up: https://your-site.vercel.app
+EVERYTHING WE READ THIS WEEK
+- Stock Market Cues This Week: CPI, Q2 Earnings, FPI Flows (Outlook Money) https://www.outlookmoney.com/invest/stock-market-cues-this-week-cpi-wpi-inflation-q2-earnings-fpi-flows
+- Crude oil, inflation data among top factors to drive stock market next week (Lokmat Times) https://www.lokmattimes.com/business/crude-oil-inflation-data-among-top-factors-to-drive-stock-market-next-week/
+- AI valuation bubble could burst, bringing foreign investors back to India: Ambareesh Baliga (The Tribune) https://www.tribuneindia.com/news/business/ai-valuation-bubble-could-burst-bringing-foreign-investors-back-to-india-ambareesh-baliga/
+- India's AI sector lacks scale for IPOs, says Piyush Goyal (NewsBytes) https://www.newsbytesapp.com/news/business/india-s-ai-sector-not-ready-for-stock-listings-piyush-goyal/story
+- India's AI firms not yet ready for stock market listings, says Piyush Goyal (Moneycontrol) https://www.moneycontrol.com/news/business/india-s-ai-firms-not-yet-ready-for-stock-market-listings-says-piyush-goyal-14048797.html
+- Gold ETF Inflows Rise In India As Stock Market Falls (Outlook Money) https://www.outlookmoney.com/invest/gold-etf-inflows-india-stock-market-fall-wgc-gold-price-outlook
+- NSE pushes IPO awareness among small businesses in Uttar Pradesh to boost access to stock market funding (Devdiscourse) https://www.devdiscourse.com/article/business/3989812-nse-pushes-ipo-awareness-among-small-businesses-in-uttar-pradesh-to-boost-access-to-stock-market-funding
+- India's Inflation Likely Hit 5.4% in September as Oil Costs Bite (OilPrice) https://oilprice.com/Latest-Energy-News/World-News/Indias-Inflation-Likely-Hit-54-in-September-as-Oil-Costs-Bite.html
+- US stocks: US market opens lower as bond yields and oil rebound; Fed minutes in focus (The Economic Times) https://economictimes.indiatimes.com/markets/us-stocks/wall-street-guide/us-stocks-us-market-opens-lower-as-bond-yields-and-oil-rebound-fed-minutes-in-focus/articleshow/134767913.cms
+- RBI MPC interest rate decision in focus: Can a 25 bps hike trigger a market sell-off? (Livemint) https://www.livemint.com/market/stock-market-news/rbi-mpc-interest-rate-decision-in-focus-can-a-25-bps-hike-trigger-a-market-selloff-11791284684306.html
 
+Open the full report online: https://your-site.vercel.app/report
+
+Nifty Smallcap 100 is not available at the moment (no free source gives its price history). Small-cap funds are compared with the Nifty Smallcap 250 instead.
 Words written by Google Gemini and checked against the numbers.
-This is information to help you understand your funds, not investment advice.
+All figures are worked out by code from public price data. This is information to help you understand your funds, not investment advice.

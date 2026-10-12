@@ -7,7 +7,7 @@ import SiteFooter from "@/components/SiteFooter";
 const figtree = Figtree({ variable: "--font-figtree", subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Meera's Money Check", template: "%s | Meera's Money Check" },
+  title: { default: "Trackerr", template: "%s | Trackerr" },
   description: "A calm, plain-language weekly check-up on your mutual funds.",
 };
 export const viewport: Viewport = {

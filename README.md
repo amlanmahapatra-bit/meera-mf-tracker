@@ -1,4 +1,4 @@
-# Meera's Money Check
+# Trackerr
 
 A calm, plain-language **Saturday-morning check-up for a non-expert investor's mutual funds**.
 It fetches live prices, works out how each fund did, compares it with the market and with similar funds,
