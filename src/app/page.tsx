@@ -1,69 +1,92 @@
-import Image from "next/image";
+import { Suspense } from "react";
+import { getSupabase } from "@/lib/supabase";
+import { DEBT_NOTICE, SMALLCAP_NOTICE } from "@/lib/notices";
+
+type Fund = { scheme_code: number; name: string; slot: string; benchmark_name: string | null; peer_codes: number[] };
+
+// Fixed display order for the standard slots; any custom slot added later goes after these.
+const SLOT_ORDER = ["Large Cap", "Mid Cap", "Small Cap", "Short Duration Debt", "International"];
+const slotRank = (slot: string) => (SLOT_ORDER.includes(slot) ? SLOT_ORDER.indexOf(slot) : SLOT_ORDER.length);
+
+async function loadFunds(): Promise<{ funds: Fund[]; error: string | null }> {
+  try {
+    const { data, error } = await getSupabase()
+      .from("funds")
+      .select("scheme_code, name, slot, benchmark_name, peer_codes")
+      .eq("active", true)
+      .order("added_at");
+    if (error) throw new Error(error.message);
+    return { funds: ((data ?? []) as Fund[]).sort((a, b) => slotRank(a.slot) - slotRank(b.slot)), error: null };
+  } catch (e) {
+    return { funds: [], error: (e as Error).message };
+  }
+}
+
+function FundsSkeleton() {
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2" aria-busy="true" aria-label="Loading your funds">
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i} className="h-28 animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-900" />
+      ))}
+    </ul>
+  );
+}
+
+// Reads the database at request time, so it sits inside <Suspense> (page shell shows instantly).
+async function FundList() {
+  const { funds, error } = await loadFunds();
+
+  if (error) {
+    return (
+      <div role="alert" className="rounded-xl border border-red-300/60 bg-red-50 p-4 text-sm text-red-900 dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-200">
+        We could not load your funds just now. Please try again in a minute.
+      </div>
+    );
+  }
+  if (funds.length === 0) {
+    return <p className="rounded-xl border border-dashed p-6 text-center text-neutral-500">No funds yet. Add one to get started.</p>;
+  }
+  return (
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {funds.map((f) => (
+        <li key={f.scheme_code} className="rounded-xl border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">{f.slot}</p>
+          <p className="mt-1 font-medium leading-snug">{f.name}</p>
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            Compared with: {f.benchmark_name ?? "similar funds only"}
+          </p>
+          <p className="text-sm text-neutral-600 dark:text-neutral-400">
+            {f.peer_codes.length > 0 ? `${f.peer_codes.length} similar funds for comparison` : "No similar funds set yet"}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-14">
+      <header className="mb-8">
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">Meera&apos;s Money Check</p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight">Your Saturday-morning fund check-up</h1>
+        <p className="mt-3 text-neutral-600 dark:text-neutral-400">
+          A calm, plain-language summary of how your SIP funds did this week. The first full report is coming soon.
+        </p>
+      </header>
+
+      <section className="mb-6 rounded-xl border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="font-medium">Good to know</p>
+        <ul className="mt-1 list-disc space-y-1 pl-5">
+          <li>{SMALLCAP_NOTICE}</li>
+          <li>{DEBT_NOTICE}</li>
+        </ul>
+      </section>
+
+      <h2 className="mb-3 text-lg font-semibold">Funds being tracked</h2>
+      <Suspense fallback={<FundsSkeleton />}>
+        <FundList />
+      </Suspense>
+    </main>
   );
 }
