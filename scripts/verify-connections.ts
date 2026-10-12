@@ -77,6 +77,9 @@ async function main() {
       const j = (await res.json()) as { meta?: { scheme_name?: string }; data?: { date: string; nav: string }[] };
       const d = j.data?.[0];
       if (!d || !/^\d{2}-\d{2}-\d{4}$/.test(d.date) || !(Number(d.nav) > 0)) throw new Error("unexpected shape");
+      const [dd, mm, yy] = d.date.split("-").map(Number);
+      const ageDays = Math.floor((Date.now() - Date.UTC(yy, mm - 1, dd)) / 86_400_000);
+      if (ageDays > 10) throw new Error(`STALE: ${j.meta?.scheme_name} last NAV is ${d.date} (${ageDays} days old). Pick a different scheme code.`);
       return `${j.meta?.scheme_name} | NAV ${d.nav} on ${d.date}`;
     });
   }
@@ -108,6 +111,9 @@ async function main() {
       const idx = closes.map((c, i) => (c == null ? -1 : i)).filter((i) => i >= 0);
       if (!idx.length) throw new Error("no closing prices returned");
       const last = idx[idx.length - 1];
+      const ageDays = Math.floor((Date.now() - ts[last] * 1000) / 86_400_000);
+      if (idx.length < 20) throw new Error(`only ${idx.length} closing prices - not enough history for week/month/year returns`);
+      if (ageDays > 7) throw new Error(`STALE: last close is ${ageDays} days old`);
       return `${idx.length} closes, last ${closes[last]!.toFixed(2)} on ${new Date(ts[last] * 1000).toISOString().slice(0, 10)}`;
     });
   }
@@ -146,6 +152,7 @@ async function main() {
     await check(`Supabase table ${table} exists`, async () => {
       if (!sb) throw new Error("Supabase credentials not set");
       const { count, error } = await sb.from(table).select("*", { count: "exact", head: true });
+      if (!error && typeof count !== "number") throw new Error("table not found");
       if (error) throw new Error(error.message + (table === "pipeline_runs" ? " (expected: this table still needs a migration)" : ""));
       return `${count} rows`;
     });
