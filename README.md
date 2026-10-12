@@ -1,5 +1,7 @@
 # Trackerr
 
+**Live site:** https://trackerr-amlan-mahapatra-1955.vercel.app  (hosted on Vercel; first pipeline run done on the live site, cron jobs registered from `vercel.json`)
+
 A calm, plain-language **Saturday-morning check-up for a non-expert investor's mutual funds**.
 It fetches live prices, works out how each fund did, compares it with the market and with similar funds,
 and has **Gemini Flash** explain the result in everyday words. Built for the MESA Cohort C4 "AI and its
