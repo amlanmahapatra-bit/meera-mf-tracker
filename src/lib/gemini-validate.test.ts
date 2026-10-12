@@ -1,0 +1,117 @@
+import { describe, expect, it } from "vitest";
+import { VERDICTS } from "./config";
+import { buildFacts, buildSystemPrompt, numbersIn, validateAnswer } from "./gemini-validate";
+import type { ReportInput } from "./report-types";
+
+const comparison = {
+  asOf: "2026-10-09",
+  fund: { week: -2.1, month: -4.0, ytd: 5.0 },
+  benchmarkName: "Nifty 50", benchmarkMissing: false,
+  benchmark: { week: -1.9, month: -3.5, ytd: 6.0 },
+  gapVsBenchmark: { week: -0.2, month: -0.5, ytd: -1.0 },
+  category: { week: -2.0, month: -3.8, ytd: 5.5 }, peersUsed: 3, peersRequested: 3,
+  gapVsCategory: { week: -0.1, month: -0.2, ytd: -0.5 },
+  reference: "benchmark" as const,
+  gapVsReference: { week: -0.2, month: -0.5, ytd: -1.0 },
+  split: { total: -2.1, marketPart: -1.9, fundPart: -0.2 },
+};
+const input: ReportInput = {
+  weekEnding: "2026-10-10", language: "en", verdict: VERDICTS.none, verdictReason: "All good.",
+  funds: [{ schemeCode: 111, name: "Test Fund", slot: "Large Cap", status: "green", weeksLagging: 0, nav: 50, asOf: "2026-10-09", comparison, referenceLabel: "the Nifty 50", dataNotes: [] }],
+  marketContext: { indexMoves: [{ name: "Nifty 50", week: -1.9, month: -3.5, ytd: 6, asOf: "2026-10-09" }], news: { source: "gnews", note: "", headlines: [{ title: "Crude oil jumps as Fed holds rates", source: "Reuters", publishedAt: null, url: "" }] }, notices: [] },
+  recentStatuses: { 111: [{ weekEnding: "2026-10-03", status: "green" }] },
+};
+const facts = buildFacts(input);
+const good = () => ({
+  funds: [{ schemeCode: 111, sentences: [
+    "Your Large Cap fund fell 2.1% this week and 4.0% over the last month, and is up 5.0% since January.",
+    "That is 0.5 points behind the Nifty 50 over the last month, and 0.2 points behind the average of 3 similar funds.",
+    "Of the 2.1% drop, 1.9% was the whole market and 0.2% was this fund, and \"Crude oil jumps as Fed holds rates\" may have played a part.",
+  ] }],
+  verdict: VERDICTS.none,
+  verdictReason: "Your Large Cap fund is only 0.5 points behind the Nifty 50, so nothing needs attention.",
+});
+
+describe("validateAnswer", () => {
+  it("accepts a well-formed, honest answer", () => {
+    const r = validateAnswer(good(), input, facts);
+    expect(r.ok).toBe(true);
+  });
+  it("rejects an invented number", () => {
+    const a = good();
+    a.funds[0].sentences[0] = "Your Large Cap fund fell 7.7% this week and 4.0% over the last month, and is up 5.0% since January.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("7.7");
+  });
+  it("rejects a verdict that is not one of the three exact strings", () => {
+    const a = { ...good(), verdict: "Everything is fine" };
+    expect(validateAnswer(a, input, facts).ok).toBe(false);
+  });
+  it("rejects the wrong number of sentences", () => {
+    const a = good();
+    (a.funds[0].sentences as string[]).pop();
+    expect(validateAnswer(a, input, facts).ok).toBe(false);
+  });
+  it("rejects two sentences squeezed into one slot", () => {
+    const a = good();
+    a.funds[0].sentences[1] = "That is 0.5 points behind the Nifty 50. It is also 0.2 points behind similar funds.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("exactly one sentence");
+  });
+  it("rejects jargon", () => {
+    const a = good();
+    a.funds[0].sentences[1] = "It underperformed the benchmark by 0.5 points over the last month.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toMatch(/jargon/);
+  });
+  it("rejects investment advice", () => {
+    const a = good();
+    a.funds[0].sentences[2] = "You should sell this fund because the market dropped 1.9%.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toMatch(/advice/);
+  });
+  it("rejects a quoted headline that was not provided", () => {
+    const a = good();
+    a.funds[0].sentences[2] = "Of the 2.1% drop, 1.9% was the whole market, and \"Sensex crashes after surprise election result\" explains it.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("not one of the provided headlines");
+  });
+  it("rejects missing or duplicated funds", () => {
+    const a = good();
+    a.funds[0].schemeCode = 999;
+    expect(validateAnswer(a, input, facts).ok).toBe(false);
+  });
+  it("allows 'I don't know' style sentences with no numbers", () => {
+    const a = good();
+    a.funds[0].sentences[2] = "I don't know of a news event that explains this move.";
+    expect(validateAnswer(a, input, facts).ok).toBe(true);
+  });
+  it("rejects non-objects", () => {
+    expect(validateAnswer(null, input, facts).ok).toBe(false);
+    expect(validateAnswer("hello", input, facts).ok).toBe(false);
+  });
+});
+
+describe("prompt and helpers", () => {
+  it("numbersIn finds decimals and ignores signs", () => {
+    expect(numbersIn("fell -2.1% and rose 1,234.5")).toEqual([2.1, 1234.5]);
+  });
+  it("the facts contain only rounded numbers and no raw price histories", () => {
+    const text = JSON.stringify(facts);
+    expect(text).toContain("fundReturnsPercent");
+    expect(text.length).toBeLessThan(6000);
+  });
+  it("the system prompt states the hard rules", () => {
+    const p = buildSystemPrompt("en");
+    expect(p).toContain("EXACTLY three sentences");
+    expect(p).toContain("Never give investment advice");
+  });
+  it("Hinglish prompt asks for Hinglish", () => {
+    expect(buildSystemPrompt("hinglish")).toContain("Hinglish");
+  });
+});

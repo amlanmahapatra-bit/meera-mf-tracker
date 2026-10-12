@@ -121,7 +121,7 @@ export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<Job
   const written = await writeReport(input);
   const report: ReportJson = {
     weekEnding, generatedAt: new Date().toISOString(), language: "en",
-    verdict: input.verdict, verdictReason: input.verdictReason,
+    verdict: written.verdict, verdictReason: written.verdictReason,
     funds: reportFunds.map((f) => ({ ...f, sentences: written.sentences[f.schemeCode] })),
     marketContext: input.marketContext, writer: written.writer,
   };
