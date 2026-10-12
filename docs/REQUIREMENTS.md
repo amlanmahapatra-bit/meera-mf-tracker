@@ -1,0 +1,131 @@
+# Requirements tracker ("the Bible")
+
+Every instruction in `CLAUDE.md`, with its real status. Updated as work lands.
+Legend: ✅ done and verified · 🟡 built, one part still to verify or finish · ⏳ not started yet (planned) · ➖ deliberately not done (reason given)
+
+_Last updated: after build steps 1–6, 8 (backend) and 9._
+
+## 1. Hard rules from the exam
+
+| # | Rule | Status | Evidence / where |
+|---|---|---|---|
+| 1 | All AI tasks use **Gemini Flash**; never the Claude/Anthropic API | 🟡 | `src/lib/gemini.ts` only calls `generativelanguage.googleapis.com`; no AI SDK installed; a test asserts no Anthropic URL. Model names looked up (not guessed): `gemini-3.8-flash` → `3.6` → `3.5`. **Live end-to-end Gemini report not yet seen** (free daily quota of 20/model was used up by testing; resets in about 10 h). Logic is covered by simulated tests. |
+| 2 | Use **live external data** | ✅ | mfapi.in, Yahoo Finance, GNews / Google News RSS, all verified with real requests (`npm run verify`). |
+| 3 | Deploy on **Vercel**; deliver public URL + GitHub repo + Components Map | ⏳ | Repo ✅ (pushed). Components Map ✅ draft in `docs/`. Vercel project + public URL ⏳. |
+| 4 | Weekly snapshots in **Supabase** | ✅ | `weekly_snapshots` written by `src/lib/pipeline/weekly.ts`; idempotent (verified: re-run leaves 5 rows). |
+| 5 | Meera can **add/remove a fund** from a web form, no code changes | 🟡 | API done and tested end to end (`/api/funds`, `/search`, `/preview`). The **web form** itself ⏳ (UI phase). |
+| 6 | Secrets only in env vars; `.env.local` in `.gitignore` | ✅ | `.gitignore` has `.env*` (+ `!.env.example`); verified with `git check-ignore`; `git ls-files` contains no env file. |
+
+## 2. Data sources (verify each with a real request)
+
+| Item | Status | Notes |
+|---|---|---|
+| NAV: mfapi.in (full history, latest, search) | ✅ | Verified. Dates `DD-MM-YYYY` parsed; weekend fallback tested. Found and replaced a **dead debt fund** (HSBC, last price Nov 2022) and 2 dead peers. |
+| Index prices | ✅ | Yahoo chart API for Nifty 50, Midcap 150, Smallcap 250, Nasdaq 100 (+ USD→INR). Closes cached in `index_history`; cache is the fallback. |
+| Nifty **Smallcap 100** (required by the brief) | ➖ | No free source gives history (Yahoo returns 1 price; niftyindices.com returns a web page). Stated on the site (`src/lib/notices.ts`) and to be stated in the README. Small-cap fund compared with Smallcap 250 instead. |
+| News: GNews + automatic Google News RSS fallback | ✅ | Both verified live. Fallback is automatic and the source used is recorded in the report. |
+| Check provider limits | ✅ | Gemini free tier = **20 requests/day/model** (found the hard way). GNews ≈ 100/day, we use 2/week. Vercel cron declared in `vercel.json`; Hobby limits to be re-checked when deploying. |
+
+## 3. Core logic (code, not AI)
+
+| # | Rule | Status | Where |
+|---|---|---|---|
+| 1 | Returns: week, month, year-to-date; nearest EARLIER date | ✅ | `src/lib/returns.ts` (26 tests, 2 deliberate-bug checks) |
+| 2 | Benchmark comparison, same windows; gap = fund − benchmark | ✅ | `src/lib/comparison.ts`; compares on the **fund's own dates** (fixed a false +0.9-point gap this way) |
+| 3 | Category average from `peer_codes`; state the method; skip failed peers and report count | ✅ | `averagePeerReturns`, `peerAverageMatched`; "average of N similar funds" in every sentence |
+| 4 | Debt fund: compare with category average only; never fake a benchmark | ✅ | `reference: "category"`; notice in `src/lib/notices.ts` |
+| 5 | "Market or fund?" split | ✅ computed · ⏳ displayed | `Split` in `comparison.ts`; also written into report sentences; stored in `market_part_1w` / `fund_part_1w` |
+| 6 | Status green/amber/red from documented thresholds + `weeks_lagging`; thresholds in ONE config file | ✅ | `src/lib/config.ts` (`STATUS_RULES`), `src/lib/status.ts` |
+| 7 | Candidate verdict computed in code, passed to Gemini as a suggestion | ✅ | `candidateVerdict`; Gemini may adjust but never calmer than a red fund |
+
+Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the US close the NAV reflects.
+
+## 4. Gemini usage
+
+| Rule | Status |
+|---|---|
+| Single structured call per weekly report, JSON + response schema | ✅ code · 🟡 live run pending quota |
+| Input: computed numbers, index moves, top headlines, last weeks' status, candidate verdict | ✅ `buildFacts` |
+| Validate with a schema, **retry once**, then **fall back to a template** | ✅ tested (simulated Gemini); template fallback seen working live |
+| Per fund exactly **three plain sentences** (performance / comparison / events citing only provided headlines) | ✅ enforced by the checker |
+| Overall verdict = one of the 3 exact strings + one-sentence specific reason | ✅ checker + database CHECK constraint (verified: bad value rejected) |
+| Prompt rules: no jargon, no invented numbers, no advice, calm, "I don't know" | ✅ prompt + checker (numbers, jargon list, advice list, quoted headlines) |
+| Optional Hinglish toggle (same call with a language flag) | 🟡 prompt supports it; endpoint/toggle ⏳ |
+
+## 5. Features
+
+**Must have**
+
+| # | Feature | Status |
+|---|---|---|
+| 1 | Daily cron: latest NAV for active funds → `nav_history` | ✅ route + job tested; `vercel.json` ⏳ live on Vercel |
+| 2 | Saturday cron: context, snapshots, Gemini, save to `weekly_snapshots` + `weekly_reports` | ✅ tested (template path live; Gemini path pending quota) |
+| 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ⏳ UI phase (all data is ready in the database) |
+| 4 | Add/remove fund form: search by NAME (Direct + Growth only), or paste code; validate, backfill, suggest slot/benchmark, find peers; remove = `active=false`; `ADMIN_PASSCODE` | 🟡 API ✅ · form ⏳ |
+| 5 | "Run now" so the site has real data | ✅ `/api/admin/run` (verified: 63 s, double-run guard works) · button ⏳ |
+| 6 | Graceful failures: last good data + "data as of" note, never a blank crash | 🟡 backend ✅ (cache fallback, notes recorded) · on-screen notes ⏳ |
+
+**Standout** (after the must-haves work end to end)
+
+| # | Feature | Status |
+|---|---|---|
+| 7 | "Send to my CA" WhatsApp button (`wa.me/?text=`) | ⏳ (build first, cheap and memorable) |
+| 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (mind the 20/day Gemini limit) |
+| 9 | English / Hinglish toggle | 🟡 prompt ready · toggle ⏳ (lowest priority) |
+| 10 | Saturday email delivery | ⏳ (lowest priority; needs a free email service, ask first) |
+
+## 6. Build order
+
+| Step | Status |
+|---|---|
+| 1 Scaffold, Supabase client, env, `.gitignore` | ✅ |
+| 2 Data-source verification script | ✅ (`npm run verify`, 21 checks) |
+| 3 Returns engine + tests | ✅ |
+| 4 Index data + benchmark/category comparison | ✅ |
+| 5 Pipeline: snapshots, status, verdict | ✅ |
+| 6 Gemini report with validation + fallback | ✅ code · 🟡 live run |
+| 7 Dashboard UI | ⏳ (next phase, with the owner's design vision) |
+| 8 Add/remove fund flow | 🟡 API ✅ · form ⏳ |
+| 9 Cron routes + `vercel.json` | ✅ code · ⏳ live |
+| 10 Standout features | ⏳ |
+| 11 `docs/COMPONENTS_MAP.md` (+ PNG/PDF), README | ✅ written and exported; final pass after UI |
+
+## 7. Definition of done
+
+| Item | Status |
+|---|---|
+| Public Vercel URL shows a real weekly report with real numbers | ⏳ (a real report is already in the database) |
+| Add/remove a fund from the form without code | 🟡 API ✅, form ⏳ |
+| Cron routes configured and secured; first run done manually | ✅ secured and configured · manual run ✅ locally · ⏳ on Vercel |
+| No secrets in the repo | ✅ |
+| `docs/COMPONENTS_MAP.md` (+ PNG/PDF), `docs/TRADEOFFS.md`, `docs/DEMO.md`, README in the repo | ✅ all present (`docs/components-map.png` and `.pdf` exported); DEMO and map get a final polish after the UI |
+| Tests pass, jobs idempotent, `pipeline_runs` shows successful runs | ✅ 105 tests · idempotent (verified) · `pipeline_runs` logs every run (see `/api/health`). Note: runs show **partial** (not success) while Gemini is unavailable, by design. |
+| Known limitations stated honestly in the README | ✅ |
+
+## 8. Examiner's rubric
+
+| Component | Weight | Status |
+|---|---|---|
+| Backend logic & build quality | 25% | ✅ strong: staged pipeline, idempotent upserts, timeouts/retries/fallbacks, validation, 105 tests, `pipeline_runs` |
+| Components Map | 10% | ✅ Mermaid diagram + full component table + PNG and PDF export |
+| Working Vercel link | 10% | ⏳ |
+| Design | 10% | ⏳ (UI phase) |
+| Demo video | 5% | ⏳ script drafted in `docs/DEMO.md`; owner records |
+| `docs/TRADEOFFS.md` | assessed | ✅ drafted, covers every topic the brief lists |
+
+## 9. Quality bar
+
+| Item | Status |
+|---|---|
+| Reliability first (timeouts, retries, fallbacks everywhere) | ✅ backend |
+| Plain language everywhere + hover glossary | 🟡 report text ✅ · glossary ⏳ |
+| Honest numbers: computed in code, "data as of", method shown | ✅ computed · ⏳ shown on screen |
+| "How this works" page on the site | ⏳ |
+| Tests for returns engine (weekend, year start, missing NAV, peer failures) | ✅ |
+| Polish: mobile, loading/empty/error states, accessible colours (icons/text with traffic lights) | ⏳ |
+| Security: cron needs `CRON_SECRET`, fund changes need `ADMIN_PASSCODE`, validate input | ✅ verified with real requests |
+| Submission readiness: README with setup, env vars, architecture, limitations, checklist | ✅ draft |
+
+## 10. Working style (from CLAUDE.md)
+
+Explain in plain language ✔ · show real output, verify APIs before depending on them ✔ · ask before adding paid services or anything outside the brief ✔ (nothing paid added; the free Gemini limit is a risk, not a spend).
