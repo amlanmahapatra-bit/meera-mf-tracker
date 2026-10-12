@@ -30,18 +30,20 @@ For each major decision: what we chose, what else we considered, and why. Weakne
 - **Why:** LLMs make arithmetic mistakes and can invent figures; investors must be able to trust every number. We enforce this: the answer checker rejects any number that is not in the facts (it caught a rounding loophole in our first version), plus jargon, advice, extra sentences and headlines we did not provide.
 - **Weakness:** the checker is strict and sometimes rejects acceptable wording, which costs a retry; then the template takes over.
 
-## 5. Gemini Flash vs a larger model
+## 5. Gemini Flash vs a larger model (and how we reach it)
 
-- **Chose:** Gemini Flash models only (exam rule), newest first, falling back to older Flash models.
-- **Considered:** a Pro-class model.
-- **Why:** the task is explaining a handful of numbers; Flash is fast, cheap and good enough, and the validation layer protects quality.
-- **Weaknesses found by experience:** the **free tier allows only 20 requests per day per model**, and models returned "high demand" (503) intermittently. Both are handled: cycling through models, a 55-second cap, stopping at a daily limit, and a template fallback so the report always exists. Our weekly job needs about 1–2 requests, so production use is comfortably inside the limit; heavy testing is not. The chat feature (if built) must be rate-limited for this reason.
+- **Chose:** Gemini Flash models only (exam rule), `google/gemini-3.7-flash` first and `google/gemini-3.8-flash` as backup, reached through the **OpenRouter** gateway and pinned to Google's own servers (`provider: only google-vertex / google-ai-studio, no fallbacks`). The code refuses to start if any model id does not begin with `google/`.
+- **Considered:** a Pro-class model (about 3x the price); calling Google's free API directly; the cheapest model, `google/gemini-3.5-flash-lite`.
+- **Why Flash:** the task is explaining a handful of numbers; Flash is fast and cheap (about 1 US cent per report, 35–40 seconds for the whole weekly job), and the validation layer protects quality.
+- **Why a gateway and not Google's free tier:** the direct free tier allows only **20 requests per day per model** and returned "high demand" (503) errors intermittently; testing used the day's quota in an hour. Through OpenRouter the same models are billed per use with generous limits, and the call has retries (3 times with backoff, honouring `Retry-After`), a model fallback, and a clean stop on "out of credits" (HTTP 402).
+- **Experiment we ran:** the same real report written by the cheapest model (`gemini-3.5-flash-lite`, about $0.002–0.005) and by `gemini-3.7-flash` (about $0.011). The cheap model passed every automatic check but attached unrelated headlines to the numbers as if they were the cause ("as noted in ..."), which is misleading in a money app, and needed a retry. We kept 3.7-flash, which says plainly when the headlines do not explain a move. Cost difference: under a cent a week.
+- **Weaknesses:** it adds a third-party gateway (one more thing that can be down; the template covers that) and a small running cost. The automatic checks cannot judge whether a quoted headline is relevant; the prompt asks the model to say "I don't know" in that case and the experiment above shows the larger model does.
 
 ## 6. Structured JSON output, validated, with a template fallback
 
-- **Chose:** response schema + our own validator + one retry that tells the model what was wrong + a code-written template.
+- **Chose:** a strict JSON schema (sent with `require_parameters`, so it is never routed to an endpoint that would ignore it) + our own validator + one retry that tells the model what was wrong + a code-written template.
 - **Considered:** free text; trusting the schema alone.
-- **Why:** a schema guarantees shape, not truth. Our validator checks truth-like properties (numbers, sentences, verdict strings), and the database refuses any verdict that is not one of the three exact strings.
+- **Why:** a schema guarantees shape, not truth. Our validator checks truth-like properties: every number must come from the facts and be rounded to one decimal, no minus signs or jargon, no advice, exactly three sentences, only supplied headlines quoted, and the market's share of the move must be stated. The database refuses any verdict that is not one of the three exact strings. The validator was tightened twice after reading real model output (a rounding loophole; a cheap model skipping the market-vs-fund split).
 - **Weakness:** the template is dry. It is the safety net, not the goal; the report records which writer was used.
 
 ## 7. Supabase with server-only access and RLS vs client-side access
@@ -78,7 +80,14 @@ For each major decision: what we chose, what else we considered, and why. Weakne
 - **Why:** re-running never duplicates data (verified: after two weekly runs there is still one report and five snapshots for the week).
 - **Weakness:** the guard is a database check, so two runs started in the same instant could both pass it; the upserts still keep the data clean.
 
-## 12. Matching dates, not guessing them
+## 12. Price indexes vs total-return funds
+
+- **Chose:** compare each fund with the index's plain price level.
+- **Considered:** total-return indexes (which include dividends).
+- **Why:** price levels are what the free source provides.
+- **Weakness:** fund prices include reinvested dividends, so over longer windows a fund can look slightly ahead of its index (about 0.7 points year-to-date for the Nifty 50 fund) without really outperforming. Week and month comparisons are barely affected. Stated in the README.
+
+## 13. Matching dates, not guessing them
 
 - **Chose:** compare the index and peers over the *fund's own* start and end dates.
 - **Why:** with independently chosen dates a Nifty 50 index fund looked 1.3 points off its index purely because the index had one extra trading day. On matched dates the gap is 0.00.

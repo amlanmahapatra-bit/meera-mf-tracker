@@ -67,6 +67,41 @@ describe("validateAnswer", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.problems.join(" ")).toMatch(/jargon/);
   });
+  it("rejects minus and plus signs in front of numbers", () => {
+    const a = good();
+    a.funds[0].sentences[0] = "Your Large Cap fund moved -2.1% this week and 4.0% over the last month, and is up 5.0% since January.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("minus or plus sign");
+    const b = good();
+    b.funds[0].sentences[0] = "Your Large Cap fund rose +2.1% this week and 4.0% over the last month, and is up 5.0% since January.";
+    expect(validateAnswer(b, input, facts).ok).toBe(false);
+  });
+  it("does not mistake dashes and ranges for signs", () => {
+    const a = good();
+    a.funds[0].sentences[1] = "That is 0.5 points behind the Nifty 50 over the last month - and 0.2 points behind the average of 3 similar funds.";
+    expect(validateAnswer(a, input, facts).ok).toBe(true);
+  });
+  it("rejects numbers with more than one decimal place", () => {
+    const a = good();
+    a.funds[0].sentences[0] = "Your Large Cap fund fell 2.10% this week and 4.0% over the last month, and is up 5.0% since January.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("too many decimals");
+  });
+  it("requires sentence 3 to state the market's part of the move when a split exists", () => {
+    const a = good();
+    a.funds[0].sentences[2] = "I don't know which market events explain the difference.";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("whole market");
+  });
+  it("does not demand a split for a fund that has none (the debt fund)", () => {
+    const noSplit = { ...input, funds: [{ ...input.funds[0], comparison: { ...input.funds[0].comparison, split: null } }] };
+    const a = good();
+    a.funds[0].sentences[2] = "I don't know which market events explain the difference.";
+    expect(validateAnswer(a, noSplit, buildFacts(noSplit)).ok).toBe(true);
+  });
   it("rejects investment advice", () => {
     const a = good();
     a.funds[0].sentences[2] = "You should sell this fund because the market dropped 1.9%.";
@@ -86,9 +121,9 @@ describe("validateAnswer", () => {
     a.funds[0].schemeCode = 999;
     expect(validateAnswer(a, input, facts).ok).toBe(false);
   });
-  it("allows 'I don't know' style sentences with no numbers", () => {
+  it("allows an honest 'I don't know' as long as the split is still stated", () => {
     const a = good();
-    a.funds[0].sentences[2] = "I don't know of a news event that explains this move.";
+    a.funds[0].sentences[2] = "Of the 2.1% drop, 1.9% was the whole market and 0.2% was this fund, and I don't know of a news event that explains it.";
     expect(validateAnswer(a, input, facts).ok).toBe(true);
   });
   it("rejects non-objects", () => {

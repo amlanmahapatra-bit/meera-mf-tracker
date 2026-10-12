@@ -6,7 +6,7 @@
 import { createClient } from "@supabase/supabase-js";
 
 const TIMEOUT_MS = 15_000;
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.8-flash"; // from ai.google.dev model list
+const AI_MODEL = (process.env.AI_MODELS || "google/gemini-3.7-flash").split(",")[0].trim(); // Google models only, via OpenRouter
 
 type Result = { name: string; ok: boolean; detail: string };
 const results: Result[] = [];
@@ -65,7 +65,7 @@ async function main() {
 
   // 0. Environment variables (names only, never values)
   console.log("== Environment variables ==");
-  for (const n of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "GEMINI_API_KEY", "GNEWS_API_KEY"]) {
+  for (const n of ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "OPENROUTER_API_KEY", "GNEWS_API_KEY"]) {
     console.log(`      ${n}: ${process.env[n]?.trim() ? "set" : "MISSING"}`);
   }
 
@@ -158,33 +158,37 @@ async function main() {
     });
   }
 
-  console.log(`\n== 5. Gemini (${GEMINI_MODEL}) ==`);
-  const gKey = process.env.GEMINI_API_KEY?.trim();
-  await check("Gemini model is available to this key", async () => {
-    if (!gKey) throw new Error("GEMINI_API_KEY is not set");
-    const res = await http(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}?key=${gKey}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
-    const j = (await res.json()) as { name: string; displayName: string };
-    return `${j.name} (${j.displayName})`;
+  console.log(`\n== 5. Gemini Flash via OpenRouter (${AI_MODEL}) ==`);
+  const orKey = process.env.OPENROUTER_API_KEY?.trim();
+  await check("Model is listed by OpenRouter and supports structured output", async () => {
+    const res = await http("https://openrouter.ai/api/v1/models");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = (await res.json()) as { data: { id: string; supported_parameters?: string[] }[] };
+    const m = j.data.find((x) => x.id === AI_MODEL);
+    if (!m) throw new Error(`${AI_MODEL} is not in OpenRouter's list; pick the closest google/ model`);
+    if (!m.supported_parameters?.includes("structured_outputs")) throw new Error("model does not list structured_outputs");
+    return `${m.id} found, structured outputs supported`;
   });
-  await check("Gemini structured JSON output", async () => {
-    if (!gKey) throw new Error("GEMINI_API_KEY is not set");
-    const res = await http(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+  await check("Structured JSON answer from Google's own servers", async () => {
+    if (!orKey) throw new Error("OPENROUTER_API_KEY is not set");
+    const res = await http("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": gKey },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${orKey}` },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: "In one plain sentence, say that a mutual fund fell 1.2% this week while the market fell 1.0%." }] }],
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: { type: "OBJECT", properties: { sentence: { type: "STRING" } }, required: ["sentence"] },
-        },
+        model: AI_MODEL,
+        messages: [{ role: "user", content: "In one plain sentence, say that a mutual fund fell 1.2% this week while the market fell 1.0%." }],
+        response_format: { type: "json_schema", json_schema: { name: "s", strict: true, schema: { type: "object", properties: { sentence: { type: "string" } }, required: ["sentence"], additionalProperties: false } } },
+        reasoning: { effort: "low" },
+        max_tokens: 2000,
+        provider: { only: ["google-vertex", "google-ai-studio"], allow_fallbacks: false, require_parameters: true },
       }),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
-    const j = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] };
-    const parsed = JSON.parse(j.candidates?.[0]?.content?.parts?.[0]?.text ?? "");
-    if (typeof parsed.sentence !== "string") throw new Error("response did not match schema");
-    return `valid JSON: "${parsed.sentence}"`;
+    const j = (await res.json()) as { model?: string; provider?: string; choices?: { message?: { content?: string } }[]; usage?: { cost?: number; cost_details?: { upstream_inference_cost?: number } }; error?: { message?: string } };
+    if (res.status === 402) throw new Error("OpenRouter says out of credits (402)");
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${j.error?.message ?? ""}`);
+    const parsed = JSON.parse(j.choices?.[0]?.message?.content ?? "");
+    if (typeof parsed.sentence !== "string") throw new Error("answer did not match the schema");
+    return `ran ${j.model} via ${j.provider}; cost ~$${(j.usage?.cost || j.usage?.cost_details?.upstream_inference_cost || 0).toFixed(5)}; "${parsed.sentence}"`;
   });
 
   const failed = results.filter((r) => !r.ok);

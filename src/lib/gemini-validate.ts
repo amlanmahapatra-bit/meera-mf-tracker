@@ -52,35 +52,38 @@ export function buildSystemPrompt(language: ReportLanguage): string {
     lang,
     "You are given FACTS as JSON. Every number in the facts was computed by code. You only explain them.",
     "HARD RULES:",
-    "1. Use ONLY numbers that appear in the FACTS. Never calculate new numbers, never estimate, never round differently than one decimal place. Write percentages like 2.1%.",
+    "1. Use ONLY numbers that appear in the FACTS. Never calculate new numbers, never estimate, ROUND every number to exactly one decimal place (0.06 becomes 0.1, 2.28 becomes 2.3). Write percentages like 2.1%.",
     "2. For each fund write EXACTLY three sentences, each a single sentence: (1) how the fund did this week, over the last month and since January; (2) how that compares with what it is compared with (use the words in 'comparedWith', and the average of similar funds, saying how many funds were used); (3) which market events explain the difference, citing ONLY headlines from the FACTS by putting the exact headline title in quotes. If the headlines do not clearly explain the move, say plainly that you don't know. If 'thisWeekSplit' is present, say how much of the move came from the whole market and how much from the fund itself.",
     "3. No jargon: never use the words alpha, beta, Sharpe, volatility, benchmark, outperform, underperform, basis points, CAGR, AUM, expense ratio, NAV. Say 'price' not NAV, 'the market index' or the index's name not 'benchmark', 'behind/ahead of' not 'under/outperformed'.",
     "4. Never give investment advice: no buy, sell, switch, redeem, 'you should', or predictions. Describe, do not advise.",
     "5. Calm, kind tone. Never alarming.",
+    "5b. Never write a minus sign or a plus sign in front of a number. Say 'fell 2.1%' or 'down 2.1%' for a loss and 'rose 2.1%' or 'up 2.1%' for a gain, as a friend would. Say 'in line with' when the gap is under 0.15 points (not 'ahead' or 'behind'), and use 'ahead of' / 'behind' only for bigger gaps.",
     "6. Overall: choose 'verdict' as exactly one of: \"No action needed\", \"One fund worth watching\", \"Consider reviewing your allocation\". Start from 'suggestedVerdict' and keep it unless the facts clearly show otherwise. 'verdictReason' is ONE specific sentence naming the fund(s) and the numbers behind it.",
     "7. Return the funds in the same order as the FACTS, each with its schemeCode.",
   ].join("\n");
 }
 
-/** The response schema we ask Gemini to follow (OpenAPI-style subset used by generateContent). */
+/** The JSON Schema we ask the model to follow (sent as response_format.json_schema.schema, strict). */
 export const RESPONSE_SCHEMA = {
-  type: "OBJECT",
+  type: "object",
   properties: {
     funds: {
-      type: "ARRAY",
+      type: "array",
       items: {
-        type: "OBJECT",
+        type: "object",
         properties: {
-          schemeCode: { type: "INTEGER" },
-          sentences: { type: "ARRAY", items: { type: "STRING" }, minItems: 3, maxItems: 3 },
+          schemeCode: { type: "integer" },
+          sentences: { type: "array", items: { type: "string" }, minItems: 3, maxItems: 3 },
         },
         required: ["schemeCode", "sentences"],
+        additionalProperties: false,
       },
     },
-    verdict: { type: "STRING", enum: Object.values(VERDICTS) },
-    verdictReason: { type: "STRING" },
+    verdict: { type: "string", enum: Object.values(VERDICTS) },
+    verdictReason: { type: "string" },
   },
   required: ["funds", "verdict", "verdictReason"],
+  additionalProperties: false,
 } as const;
 
 // ---------- validation ----------
@@ -89,6 +92,8 @@ export type GeminiAnswer = { funds: { schemeCode: number; sentences: [string, st
 export type ValidationResult = { ok: true; answer: GeminiAnswer } | { ok: false; problems: string[] };
 
 const JARGON = /\b(alpha|beta|sharpe|volatility|benchmark|outperform\w*|underperform\w*|basis points?|bps|cagr|aum|expense ratio|nav)\b/i;
+/** A minus or plus sign glued to a number ("-2.6%", "+0.4"): spreadsheet-speak, not plain language. */
+const SIGNED_NUMBER = /(?:^|[\s(])[-−–+]\s?\d/;
 const ADVICE = /\b(buy|sell|switch|redeem|invest more|you should|i recommend|must exit)\b/i;
 
 /** Numbers like 2.1, -0.35, 1,234 found in text, as absolute values. */
@@ -156,12 +161,29 @@ export function validateAnswer(raw: unknown, input: ReportInput, facts: unknown)
   }
   if (typeof a.verdictReason === "string") texts.push({ where: "verdictReason", text: a.verdictReason });
 
+  // The "market or fund?" split is the signature feature: when we computed one, sentence 3 must state the market's part.
+  for (const f of a.funds) {
+    const src = input.funds.find((x) => x.schemeCode === f?.schemeCode);
+    const third = Array.isArray(f?.sentences) ? f.sentences[2] : undefined;
+    if (src?.comparison.split && typeof third === "string") {
+      const market = Math.abs(src.comparison.split.marketPart).toFixed(1);
+      if (!numbersIn(third).some((n) => n.toFixed(1) === market)) {
+        problems.push(`Fund ${f.schemeCode}, sentence 3: must say how much of this week's move (${market}%) came from the whole market and how much from the fund itself.`);
+      }
+    }
+  }
+
   for (const { where, text } of texts) {
     const plain = stripQuotes(text);
     if (JARGON.test(plain)) problems.push(`${where}: uses jargon ("${JARGON.exec(plain)![0]}"). Use plain words.`);
     if (ADVICE.test(plain)) problems.push(`${where}: gives advice ("${ADVICE.exec(plain)![0]}"). Describe only.`);
+    if (SIGNED_NUMBER.test(plain)) problems.push(`${where}: has a minus or plus sign in front of a number. Write "fell 2.1%" or "rose 2.1%" instead.`);
     for (const t of numberTokens(plain)) {
-      if (!allowed.has(key(t.value, Math.min(t.decimals, 2))) || t.decimals > 2) {
+      if (t.decimals > 1) {
+        problems.push(`${where}: the number ${t.value.toFixed(t.decimals)} has too many decimals. Round to one decimal place (for example ${t.value.toFixed(1)}%).`);
+        continue;
+      }
+      if (!allowed.has(key(t.value, t.decimals))) {
         problems.push(`${where}: the number ${t.value.toFixed(t.decimals)} is not in the facts.`);
       }
     }

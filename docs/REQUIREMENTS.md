@@ -3,13 +3,13 @@
 Every instruction in `CLAUDE.md`, with its real status. Updated as work lands.
 Legend: ✅ done and verified · 🟡 built, one part still to verify or finish · ⏳ not started yet (planned) · ➖ deliberately not done (reason given)
 
-_Last updated: after build steps 1–6, 8 (backend) and 9._
+_Last updated: after build steps 1–6, 8 (backend) and 9, and the OpenRouter switch (live Gemini report verified)._
 
 ## 1. Hard rules from the exam
 
 | # | Rule | Status | Evidence / where |
 |---|---|---|---|
-| 1 | All AI tasks use **Gemini Flash**; never the Claude/Anthropic API | 🟡 | `src/lib/gemini.ts` only calls `generativelanguage.googleapis.com`; no AI SDK installed; a test asserts no Anthropic URL. Model names looked up (not guessed): `gemini-3.8-flash` → `3.6` → `3.5`. **Live end-to-end Gemini report not yet seen** (free daily quota of 20/model was used up by testing; resets in about 10 h). Logic is covered by simulated tests. |
+| 1 | All AI tasks use **Gemini Flash**; never the Claude/Anthropic API | ✅ | `src/lib/gemini.ts` calls only OpenRouter with `google/` models (code refuses non-Google ids), pinned to Google's servers; no AI SDK installed; tests assert no Anthropic/OpenAI/Google-direct URL. **Live report verified**: `google/gemini-3.7-flash`, about $0.012 per report, stored in `weekly_reports` (`writer.kind = gemini`). |
 | 2 | Use **live external data** | ✅ | mfapi.in, Yahoo Finance, GNews / Google News RSS, all verified with real requests (`npm run verify`). |
 | 3 | Deploy on **Vercel**; deliver public URL + GitHub repo + Components Map | ⏳ | Repo ✅ (pushed). Components Map ✅ draft in `docs/`. Vercel project + public URL ⏳. |
 | 4 | Weekly snapshots in **Supabase** | ✅ | `weekly_snapshots` written by `src/lib/pipeline/weekly.ts`; idempotent (verified: re-run leaves 5 rows). |
@@ -24,7 +24,7 @@ _Last updated: after build steps 1–6, 8 (backend) and 9._
 | Index prices | ✅ | Yahoo chart API for Nifty 50, Midcap 150, Smallcap 250, Nasdaq 100 (+ USD→INR). Closes cached in `index_history`; cache is the fallback. |
 | Nifty **Smallcap 100** (required by the brief) | ➖ | No free source gives history (Yahoo returns 1 price; niftyindices.com returns a web page). Stated on the site (`src/lib/notices.ts`) and to be stated in the README. Small-cap fund compared with Smallcap 250 instead. |
 | News: GNews + automatic Google News RSS fallback | ✅ | Both verified live. Fallback is automatic and the source used is recorded in the report. |
-| Check provider limits | ✅ | Gemini free tier = **20 requests/day/model** (found the hard way). GNews ≈ 100/day, we use 2/week. Vercel cron declared in `vercel.json`; Hobby limits to be re-checked when deploying. |
+| Check provider limits | ✅ | Google's direct free tier = 20 requests/day/model (hit during testing, so the AI step now goes through OpenRouter: about 1 cent per report). GNews ≈ 100/day, we use 2/week. Vercel cron declared in `vercel.json`; Hobby limits to be re-checked when deploying. |
 
 ## 3. Core logic (code, not AI)
 
@@ -44,9 +44,9 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 
 | Rule | Status |
 |---|---|
-| Single structured call per weekly report, JSON + response schema | ✅ code · 🟡 live run pending quota |
+| Single structured call per weekly report, JSON + strict schema | ✅ verified live (1 call, ~38 s whole job) |
 | Input: computed numbers, index moves, top headlines, last weeks' status, candidate verdict | ✅ `buildFacts` |
-| Validate with a schema, **retry once**, then **fall back to a template** | ✅ tested (simulated Gemini); template fallback seen working live |
+| Validate with a schema, **retry once**, then **fall back to a template** | ✅ retry seen live (cheap model needed one); template fallback seen working live and tested for 402/429/5xx |
 | Per fund exactly **three plain sentences** (performance / comparison / events citing only provided headlines) | ✅ enforced by the checker |
 | Overall verdict = one of the 3 exact strings + one-sentence specific reason | ✅ checker + database CHECK constraint (verified: bad value rejected) |
 | Prompt rules: no jargon, no invented numbers, no advice, calm, "I don't know" | ✅ prompt + checker (numbers, jargon list, advice list, quoted headlines) |
@@ -59,7 +59,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | # | Feature | Status |
 |---|---|---|
 | 1 | Daily cron: latest NAV for active funds → `nav_history` | ✅ route + job tested; `vercel.json` ⏳ live on Vercel |
-| 2 | Saturday cron: context, snapshots, Gemini, save to `weekly_snapshots` + `weekly_reports` | ✅ tested (template path live; Gemini path pending quota) |
+| 2 | Saturday cron: context, snapshots, Gemini, save to `weekly_snapshots` + `weekly_reports` | ✅ tested end to end live (status `success`) |
 | 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ⏳ UI phase (all data is ready in the database) |
 | 4 | Add/remove fund form: search by NAME (Direct + Growth only), or paste code; validate, backfill, suggest slot/benchmark, find peers; remove = `active=false`; `ADMIN_PASSCODE` | 🟡 API ✅ · form ⏳ |
 | 5 | "Run now" so the site has real data | ✅ `/api/admin/run` (verified: 63 s, double-run guard works) · button ⏳ |
@@ -70,7 +70,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | # | Feature | Status |
 |---|---|---|
 | 7 | "Send to my CA" WhatsApp button (`wa.me/?text=`) | ⏳ (build first, cheap and memorable) |
-| 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (mind the 20/day Gemini limit) |
+| 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (each question costs about a cent; add a daily cap) |
 | 9 | English / Hinglish toggle | 🟡 prompt ready · toggle ⏳ (lowest priority) |
 | 10 | Saturday email delivery | ⏳ (lowest priority; needs a free email service, ask first) |
 
@@ -79,11 +79,11 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | Step | Status |
 |---|---|
 | 1 Scaffold, Supabase client, env, `.gitignore` | ✅ |
-| 2 Data-source verification script | ✅ (`npm run verify`, 21 checks) |
+| 2 Data-source verification script | ✅ (`npm run verify`, 21 checks incl. OpenRouter) |
 | 3 Returns engine + tests | ✅ |
 | 4 Index data + benchmark/category comparison | ✅ |
 | 5 Pipeline: snapshots, status, verdict | ✅ |
-| 6 Gemini report with validation + fallback | ✅ code · 🟡 live run |
+| 6 Gemini report with validation + fallback | ✅ verified live |
 | 7 Dashboard UI | ⏳ (next phase, with the owner's design vision) |
 | 8 Add/remove fund flow | 🟡 API ✅ · form ⏳ |
 | 9 Cron routes + `vercel.json` | ✅ code · ⏳ live |
@@ -99,7 +99,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | Cron routes configured and secured; first run done manually | ✅ secured and configured · manual run ✅ locally · ⏳ on Vercel |
 | No secrets in the repo | ✅ |
 | `docs/COMPONENTS_MAP.md` (+ PNG/PDF), `docs/TRADEOFFS.md`, `docs/DEMO.md`, README in the repo | ✅ all present (`docs/components-map.png` and `.pdf` exported); DEMO and map get a final polish after the UI |
-| Tests pass, jobs idempotent, `pipeline_runs` shows successful runs | ✅ 105 tests · idempotent (verified) · `pipeline_runs` logs every run (see `/api/health`). Note: runs show **partial** (not success) while Gemini is unavailable, by design. |
+| Tests pass, jobs idempotent, `pipeline_runs` shows successful runs | ✅ 118 tests · idempotent (verified) · `pipeline_runs` logs every run (see `/api/health`); weekly runs now show `success`. A run shows **partial** only when a fallback was used (by design). |
 | Known limitations stated honestly in the README | ✅ |
 
 ## 8. Examiner's rubric

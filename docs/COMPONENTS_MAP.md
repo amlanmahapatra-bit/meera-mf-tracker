@@ -27,7 +27,7 @@ flowchart TB
     PAGES["Website<br/>dashboard, form, How it works"]
   end
 
-  GEM["Gemini Flash<br/>(the only AI)"]
+  GEM["Gemini Flash (google/ models)<br/>via OpenRouter, pinned to Google<br/>(the only AI)"]
   DB[("Supabase Postgres<br/>funds, nav_history, index_history,<br/>weekly_snapshots, weekly_reports,<br/>pipeline_runs")]
   USER(("Meera"))
 
@@ -67,7 +67,7 @@ Failure behaviour is the important column: the site must never show a blank page
 | **Returns engine** `src/lib/returns.ts` | Week / month / year-to-date returns; nearest earlier date for weekends and holidays; peer average | Price series | Percentages with the base dates used | Missing or stale base (> 7 days) gives *no number*, never a guess |
 | **Comparison** `src/lib/comparison.ts` | Gap vs index and vs similar funds on the fund's own dates; USD→INR + one-day lag for the Nasdaq fund; "market vs fund" split | Fund + index + peers | Gaps, split | Missing index → category only; failed peers skipped and counted ("average of N funds") |
 | **Status + verdict** `src/lib/status.ts`, `src/lib/config.ts` | Green/amber/red per fund (month gap + weeks behind in a row); overall verdict (exact 3 strings) | Gaps, last snapshot | Status, verdict, specific reason | Unknown data shows "unknown", not green |
-| **Report writer** `src/lib/gemini*.ts`, `report-*.ts` | One structured Gemini call; check the answer; one retry; template fallback | Computed facts only | Three sentences per fund, verdict reason | Busy → next Flash model; daily limit → template; invalid answer → one retry then template. The report always exists. |
+| **Report writer** `src/lib/gemini*.ts`, `report-*.ts` | One structured Gemini call through OpenRouter (Google models only, provider pinned to Google); check the answer; one retry; template fallback | Computed facts only | Three sentences per fund, verdict reason | Busy (429/5xx) → 3 retries with backoff, then the next Flash model; out of credits (402) or unreachable → template; invalid answer → one retry then template. The report always exists and records which writer was used and the cost. |
 | **Pipeline jobs** `src/lib/pipeline/*` | Daily prices job, weekly report job, "run now" | Active funds | Rows in the database; a log line in `pipeline_runs` | Every run logged with status `success` / `partial` / `failed` and error; double-click guard; all writes are upserts (safe to repeat) |
 | **Cron routes** `src/app/api/cron/*` | Entry points for Vercel Cron | `Authorization: Bearer CRON_SECRET` | Job result JSON | Wrong or missing secret → 401, nothing runs |
 | **Fund API** `src/app/api/funds/*`, `src/lib/funds-service.ts` | Search (Direct Growth only), preview, add (validate, backfill, find peers), remove (switch off) | Name or scheme code, `ADMIN_PASSCODE` | Fund list changes | Plain-language errors; a half-finished add is rolled back; remove keeps history |

@@ -25,7 +25,7 @@ export async function writeReport(input: ReportInput, language: ReportLanguage =
     // numbers justify when a fund is red, and any change is recorded openly.
     let verdict = outcome.answer.verdict;
     let reason = outcome.answer.verdictReason;
-    let note = `Written by Gemini (${outcome.model})${outcome.attempts > 1 ? " on the second attempt" : ""}.`;
+    let note = `Written by ${outcome.model} via OpenRouter${outcome.attempts > 1 ? " on the second attempt" : ""} (about $${(outcome.usage.upstreamCostUsd || outcome.usage.billedCredits).toFixed(4)}).`;
     const anyRed = input.funds.some((f) => f.status === "red");
     if (anyRed && SEVERITY[verdict] < SEVERITY[input.verdict]) {
       verdict = input.verdict;

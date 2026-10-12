@@ -31,6 +31,7 @@ GNEWS_API_KEY=
 CRON_SECRET=                    # protects /api/cron/* routes (Vercel sends it as a Bearer token)
 ADMIN_PASSCODE=                 # simple passcode needed to add/remove funds from the form
 ```
+> **Update (12 Oct 2026, added by the build):** AI access now goes through the OpenRouter gateway using `OPENROUTER_API_KEY` (Google `google/` Gemini Flash models only, pinned to Google's servers, never another vendor, never Google AI Studio/Vertex directly). `GEMINI_API_KEY` is no longer used. See `src/lib/gemini.ts`.
 
 ## Database (already created in Supabase, see schema.sql)
 Tables: `funds`, `nav_history`, `index_history`, `weekly_snapshots`, `weekly_reports`.
