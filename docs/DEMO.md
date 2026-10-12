@@ -1,6 +1,6 @@
 # Demo script (3–4 minutes)
 
-_Draft. Screens marked **(UI)** depend on the dashboard and form, which are built in the next phase; update the wording once they exist. The owner records the video._
+_Not needed for the exam any more (the Components Map is the required item); kept as an optional walkthrough. Draft. Screens marked **(UI)** depend on the dashboard and form, which are built in the next phase; update the wording once they exist. The owner records the video._
 
 **Before recording:** open the live site, run "Run now" once so the newest report is on screen, keep a second tab on the Components Map, have the admin passcode ready (do not show it on screen).
 

@@ -24,14 +24,16 @@ flowchart TB
     STATUS["Status + verdict rules<br/>green / amber / red"]
     WRITER["Report writer<br/>validate, retry once, template fallback"]
     API["Fund API<br/>search, add, remove (passcode)"]
-    PAGES["Website<br/>dashboard, fund pages, form, How it works"]
-    EMAIL["Saturday email step<br/>once per week, never twice"]
+    PAGES["Website (live on Vercel)<br/>dashboard, fund pages, add/remove form, How it works"]
+    EMAIL["Saturday email step<br/>detailed report + PDF attached<br/>once per week, never twice"]
+    ASK["Ask about my money<br/>chat button on every page"]
+    REPORTPAGE["Weekly report page<br/>printable"]
     BACKFILL["History backfill<br/>replays 5 years of weeks"]
   end
 
   GEM["Gemini Flash (google/ models)<br/>via OpenRouter, pinned to Google<br/>(the only AI)"]
   RS["Resend<br/>email delivery"]
-  MAIL(("Meera's inbox"))
+  MAIL(("Meera's inbox<br/>(email + PDF)"))
   DB[("Supabase Postgres<br/>funds, nav_history, index_history,<br/>weekly_snapshots, weekly_reports,<br/>pipeline_runs")]
   USER(("Meera"))
 
@@ -52,6 +54,10 @@ flowchart TB
   CRON1 -. "logs every run" .-> DB
   CRON2 -. "logs every run" .-> DB
   WRITER --> EMAIL --> RS --> MAIL
+  USER -->|"asks a question"| ASK
+  ASK -->|"saved report + headlines only"| DB
+  ASK <-->|"checked answer"| GEM
+  DB --> REPORTPAGE --> USER
   EMAIL -. "week claimed in email_log" .-> DB
   BACKFILL -->|"past weeks"| DB
   LOAD --> BACKFILL
@@ -70,7 +76,7 @@ Failure behaviour is the important column: the site must never show a blank page
 |---|---|---|---|---|
 | **mfapi source** `src/lib/sources/mfapi.ts` | Fetch fund price history, search by name, list all schemes | Scheme code or name | Clean price series | 15 s timeout, 2 retries with backoff; loaders use the saved copy in `nav_history` and say so |
 | **Index source** `src/lib/sources/indices.ts` | Daily closes for Nifty 50 / Midcap 150 / Smallcap 250 / Nasdaq 100 and USD→INR | Yahoo symbol | Clean close series (days labelled in the market's own time zone) | Same retries; falls back to `index_history`; benchmark marked "not available" and the fund is compared with similar funds instead |
-| **News source** `src/lib/sources/news.ts` | Top ~8 relevant headlines of the week | GNews key (optional) | Headlines + which source was used | GNews error / rate limit / no key → **Google News RSS** automatically; if both fail the report says news was unavailable |
+| **News source** `src/lib/sources/news.ts` | Up to 12 relevant headlines (3 topics) of the week | GNews key (optional) | Headlines + which source was used | GNews error / rate limit / no key → **Google News RSS** automatically; if both fail the report says news was unavailable |
 | **Loaders** `src/lib/pipeline/load.ts` | Live first, save what was fetched, saved copy as fallback; drops today's unfinished index row | Source results, DB | Series + a plain-language note when a fallback was used | Throws only when there is neither live nor saved data |
 | **Returns engine** `src/lib/returns.ts` | Week / month / year-to-date returns; nearest earlier date for weekends and holidays; peer average | Price series | Percentages with the base dates used | Missing or stale base (> 7 days) gives *no number*, never a guess |
 | **Comparison** `src/lib/comparison.ts` | Gap vs index and vs similar funds on the fund's own dates; USD→INR + one-day lag for the Nasdaq fund; "market vs fund" split | Fund + index + peers | Gaps, split | Missing index → category only; failed peers skipped and counted ("average of N funds") |
@@ -83,6 +89,9 @@ Failure behaviour is the important column: the site must never show a blank page
 | **Cron routes** `src/app/api/cron/*` | Entry points for Vercel Cron | `Authorization: Bearer CRON_SECRET` | Job result JSON | Wrong or missing secret → 401, nothing runs |
 | **Fund API** `src/app/api/funds/*`, `src/lib/funds-service.ts` | Search (Direct Growth only), preview, add (validate, backfill, find peers), remove (switch off) | Name or scheme code, `ADMIN_PASSCODE` | Fund list changes | Plain-language errors; a half-finished add is rolled back; remove keeps history |
 | **Database** Supabase (RLS on, no public policies) | Stores funds, prices, snapshots, reports, run log | Server code with the service-role key | Rows | Unique keys make jobs idempotent; verdict values enforced by a CHECK constraint |
+| **Ask about my money** `src/lib/ask.ts`, `src/app/api/ask/route.ts`, `src/components/Ask*.tsx` | A chat button on every page; Gemini answers a plain-words question using only the saved report and the week's real headlines | Question (max 300 letters), latest report | A short plain answer | Answer checked for invented numbers, jargon, advice and made-up headlines (one retry, then a safe "could not answer"); 12 questions/hour per visitor; AI down → friendly "try again" message |
+| **PDF report** `src/lib/report-pdf.ts` | Builds the weekly report as a PDF in code (no browser needed) and attaches it to the Saturday email | The saved report | A multi-page A4 PDF | If the PDF cannot be built the email still goes out without it |
+| **Weekly report page** `src/app/report` | The whole week on one printable page (also what the email contains) | Latest report | Glance table, why markets moved (clickable sources), per-fund story | Same as the website |
 | **Website** `src/app` | Dashboard, add/remove form, "How this works" | Database (server-side) | What Meera sees | Last good report with "data as of"; skeleton while loading; friendly error box |
 | **Health endpoint** `src/app/api/health` | Public read-only run log | `pipeline_runs` | Last 10 runs | 503 with a plain message |
 

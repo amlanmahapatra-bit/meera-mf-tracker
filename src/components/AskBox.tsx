@@ -7,7 +7,7 @@ const EXAMPLES = ["How are my funds doing this week?", "Why did my US fund go up
 type Answer = { kind: "answer" | "problem"; text: string; weekEnding?: string };
 
 /** "Ask about my money": plain questions, answered only from her saved report and this week's headlines. */
-export default function AskBox() {
+export default function AskBox({ bare = false }: { bare?: boolean }) {
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Answer | null>(null);
@@ -30,13 +30,17 @@ export default function AskBox() {
   }
 
   return (
-    <section aria-labelledby="ask-title">
-      <h2 id="ask-title" className="text-lg font-bold tracking-tight">Ask about your money</h2>
-      <p className="mt-1 text-sm text-ink-2">Type a question in your own words. The answer uses only your saved numbers and this week&apos;s news.</p>
-      <div className="themed mt-3 rounded-2xl border border-line bg-card p-4 shadow-card sm:p-5">
+    <section aria-labelledby={bare ? undefined : "ask-title"} aria-label={bare ? "Ask about your money" : undefined}>
+      {!bare && (
+        <>
+          <h2 id="ask-title" className="text-lg font-bold tracking-tight">Ask about your money</h2>
+          <p className="mt-1 text-sm text-ink-2">Type a question in your own words. The answer uses only your saved numbers and this week&apos;s news.</p>
+        </>
+      )}
+      <div className={bare ? "" : "themed mt-3 rounded-2xl border border-line bg-card p-4 shadow-card sm:p-5"}>
         <form onSubmit={(e) => { e.preventDefault(); void ask(question); }} className="flex flex-col gap-3 sm:flex-row">
-          <label htmlFor="ask-input" className="sr-only">Your question</label>
-          <input id="ask-input" value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={300} placeholder="For example: why did my small cap fund dip?"
+          <label htmlFor={bare ? "ask-input-float" : "ask-input"} className="sr-only">Your question</label>
+          <input id={bare ? "ask-input-float" : "ask-input"} value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={300} placeholder="For example: why did my small cap fund dip?"
             className="min-w-0 flex-1 rounded-xl border border-line-strong bg-page px-4 py-3 text-[15px] text-ink placeholder:text-ink-3" />
           <button type="submit" disabled={busy || question.trim().length < 3} className="rounded-xl bg-accent px-5 py-3 text-sm font-bold text-accent-ink hover:opacity-90 disabled:opacity-50">
             {busy ? "Thinking…" : "Ask"}

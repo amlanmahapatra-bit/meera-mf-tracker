@@ -86,6 +86,13 @@ async function Dashboard() {
         </div>
       </section>
       <AskBox />
+      <Link href="/manage" className="themed flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-5 py-4 shadow-card hover:bg-card-2">
+        <span>
+          <span className="block text-[15px] font-bold">Add or remove a fund</span>
+          <span className="block text-sm text-ink-2">Search by name or paste a scheme code. No code changes needed (passcode protected).</span>
+        </span>
+        <span aria-hidden="true" className="text-xl text-accent">&rarr;</span>
+      </Link>
       <IndexStrip moves={report.marketContext.indexMoves} />
       <MarketStory market={report.marketContext} />
       <TrendSection funds={funds} snapshots={snapshots} />
