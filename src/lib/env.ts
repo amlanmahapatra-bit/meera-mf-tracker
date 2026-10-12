@@ -28,3 +28,9 @@ export function optionalEnv(name: EnvName): string | undefined {
 }
 
 export const ALL_ENV_NAMES = NAMES;
+
+/** Supabase URL reduced to its base (people often paste ".../rest/v1/"). */
+export function supabaseBaseUrl(): string {
+  const u = new URL(requireEnv("SUPABASE_URL"));
+  return u.origin;
+}

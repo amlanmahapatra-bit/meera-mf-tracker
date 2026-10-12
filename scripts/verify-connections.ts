@@ -133,7 +133,7 @@ async function main() {
   });
 
   console.log("\n== 4. Supabase ==");
-  const sbUrl = process.env.SUPABASE_URL?.trim();
+  const sbUrl = process.env.SUPABASE_URL?.trim() ? new URL(process.env.SUPABASE_URL.trim()).origin : undefined; // strips a pasted "/rest/v1/"
   const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const sb = sbUrl && sbKey ? createClient(sbUrl, sbKey, { auth: { persistSession: false } }) : null;
   await check("Supabase funds table (expect 5 seeded rows)", async () => {
