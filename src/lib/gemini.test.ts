@@ -23,12 +23,12 @@ const input: ReportInput = {
 };
 const goodAnswer = {
   funds: [{ schemeCode: 111, sentences: [
-    "Your Large Cap fund fell 2.1% this week and 4.0% over the last month, and is up 5.0% since January.",
-    "That is 0.5 points behind the Nifty 50 over the last month, and 0.2 points behind the average of 3 similar funds.",
-    "Of the 2.1% drop, 1.9% was the whole market and 0.2% was this fund, and I don't know if the news explains the rest.",
+    "Your Large Cap fund fell 2.1% this week, and is up 5.0% since January.",
+    "Over the last month it did a little worse than the Nifty 50, and a little worse than 3 similar funds.",
+    "Most of the drop came from the whole market, and I do not know of any news that explains the rest.",
   ] }],
   verdict: VERDICTS.none,
-  verdictReason: "Your Large Cap fund is only 0.5 points behind the Nifty 50, so nothing needs attention.",
+  verdictReason: "Your Large Cap fund is only a little behind the market, so nothing needs attention.",
 };
 
 const usage = { prompt_tokens: 3000, completion_tokens: 900, cost: 0, cost_details: { upstream_inference_cost: 0.0042 } };
@@ -93,7 +93,7 @@ describe("generateReportText (simulated OpenRouter)", () => {
 
   it("retries once, telling the model what was wrong, then accepts a corrected answer (costs add up)", async () => {
     const bad = JSON.parse(JSON.stringify(goodAnswer));
-    bad.funds[0].sentences[0] = "Your Large Cap fund fell 9.9% this week and 4.0% over the last month, and is up 5.0% since January.";
+    bad.funds[0].sentences[0] = "Your Large Cap fund fell 9.9% this week, and is up 5.0% since January.";
     fetchMock.mockResolvedValueOnce(ok(bad)).mockResolvedValueOnce(ok(goodAnswer));
     const r = await generateReportText(input);
     expect(r.ok).toBe(true);

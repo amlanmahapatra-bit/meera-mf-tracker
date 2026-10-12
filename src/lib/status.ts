@@ -7,16 +7,16 @@ import { PEER_STANDING, STATUS_RULES, VERDICTS, VERDICT_REVIEW_MIN_FLAGGED, type
 export type Status = "green" | "amber" | "red" | "unknown";
 
 /** Was this week "behind"? null when we cannot tell (no gap available). */
-export function isBehindThisWeek(weekGap: number | null): boolean | null {
-  return weekGap === null ? null : weekGap < -STATUS_RULES.weekBehindTolerance;
+export function isBehindThisWeek(weekGap: number | null, allowance = 0): boolean | null {
+  return weekGap === null ? null : weekGap < -(STATUS_RULES.weekBehindTolerance + allowance);
 }
 
 /**
  * Consecutive weeks behind. Behind this week -> previous count + 1; not behind -> 0;
  * unknown -> keep the previous count (missing data neither starts nor ends a streak).
  */
-export function nextWeeksLagging(previous: number, weekGap: number | null): number {
-  const behind = isBehindThisWeek(weekGap);
+export function nextWeeksLagging(previous: number, weekGap: number | null, allowance = 0): number {
+  const behind = isBehindThisWeek(weekGap, allowance);
   if (behind === null) return previous;
   return behind ? previous + 1 : 0;
 }
@@ -25,10 +25,11 @@ const RANK: Record<Status, number> = { unknown: 0, green: 1, amber: 2, red: 3 };
 const worst = (a: Status, b: Status): Status => (RANK[a] >= RANK[b] ? a : b);
 
 /** Status from the month gap (points vs reference) and how many weeks in a row the fund has been behind. */
-export function fundStatus(monthGap: number | null, weeksLagging: number): Status {
+export function fundStatus(monthGap: number | null, weeksLagging: number, allowance = 0): Status {
   let byGap: Status = "unknown";
   if (monthGap !== null) {
-    byGap = monthGap >= STATUS_RULES.greenMinMonthGap ? "green" : monthGap >= STATUS_RULES.amberMinMonthGap ? "amber" : "red";
+    // `allowance` widens both thresholds for funds that cannot follow their index closely (see BENCHMARKS.trackingAllowance).
+    byGap = monthGap >= STATUS_RULES.greenMinMonthGap - allowance ? "green" : monthGap >= STATUS_RULES.amberMinMonthGap - allowance ? "amber" : "red";
   }
   let byStreak: Status = "green";
   if (weeksLagging >= STATUS_RULES.redWeeksLagging) byStreak = "red";
@@ -49,12 +50,11 @@ export type FundFlagInput = {
 
 export type CandidateVerdict = { verdict: Verdict; reason: string; flaggedSlots: string[] };
 
-const pts = (n: number) => `${Math.abs(n).toFixed(1)} point${Math.abs(n).toFixed(1) === "1.0" ? "" : "s"}`;
 
 function flagSentence(f: FundFlagInput): string {
   const parts: string[] = [];
   if (f.monthGap !== null && f.monthGap < STATUS_RULES.greenMinMonthGap) {
-    parts.push(`${pts(f.monthGap)} behind ${f.referenceLabel} over the last month`);
+    parts.push(`${Math.abs(f.monthGap).toFixed(1)}% worse than ${f.referenceLabel} over the last month`);
   }
   if (f.weeksLagging >= STATUS_RULES.amberWeeksLagging) {
     parts.push(`behind for ${f.weeksLagging} weeks in a row`);

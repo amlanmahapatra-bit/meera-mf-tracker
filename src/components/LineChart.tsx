@@ -5,7 +5,8 @@ import { fmtDate, fmtNav, fmtPct } from "@/lib/format";
 import { addDays } from "@/lib/returns";
 
 export type ChartSeries = { id: string; label: string; color: string; points: { date: string; value: number }[] };
-export type RangeOption = { label: string; days: number | null };
+/** days = look back this many days; points = show the last N prices; both null = everything. */
+export type RangeOption = { label: string; days?: number | null; points?: number };
 
 /** How values are written on the axis, in the tooltip and in the table. A name (not a function) so server pages can pass it. */
 export type ChartUnit = "percent" | "percent-whole" | "price";
@@ -66,12 +67,20 @@ export default function LineChart({ series, unit, ariaLabel, height = 260, range
   // 1. Apply the chosen time range
   const visible = useMemo(() => {
     const opt = ranges?.find((r) => r.label === range);
-    if (!opt || opt.days === null) return series;
+    if (opt?.points) return series.map((s) => ({ ...s, points: s.points.slice(-opt.points!) }));
+    if (!opt || opt.days === null || opt.days === undefined) return series;
     const last = series.flatMap((s) => s.points.map((p) => p.date)).sort().pop();
     if (!last) return series;
     const cutoff = addDays(last, -opt.days);
     return series.map((s) => ({ ...s, points: s.points.filter((p) => p.date >= cutoff) }));
   }, [series, ranges, range]);
+
+  // A range is greyed out when the history does not reach back that far (for example 5Y for a 4-year-old fund).
+  const historyDays = useMemo(() => {
+    const all = series.flatMap((s) => s.points.map((p) => p.date)).sort();
+    return all.length < 2 ? 0 : (t(all[all.length - 1]) - t(all[0])) / DAY;
+  }, [series]);
+  const tooYoung = (r: RangeOption) => !!r.days && historyDays < r.days * 0.97;
 
   const dates = useMemo(() => [...new Set(visible.flatMap((s) => s.points.map((p) => p.date)))].sort(), [visible]);
   const all = visible.flatMap((s) => s.points.map((p) => p.value));
@@ -90,8 +99,13 @@ export default function LineChart({ series, unit, ariaLabel, height = 260, range
   const Y = (v: number) => MARGIN.top + (1 - (v - lo) / (hi - lo)) * innerH;
 
   const spanDays = (t1 - t0) / DAY;
-  const xTicks = dates.length === 1 ? [dates[0]] : [0, 1, 2, 3].map((i) => new Date(t0 + ((t1 - t0) * i) / 3).toISOString().slice(0, 10));
-  const xLabel = (d: string) => (spanDays > 200 ? fmtDate(d).replace(/^\d+ /, "") : fmtDate(d, false));
+  // Axis labels: four evenly spaced dates, but only distinct ones (a 1-day view has just two dates), and with only a few
+  // prices we label the prices themselves.
+  const xTicks =
+    dates.length <= 4
+      ? dates
+      : [...new Set([0, 1, 2, 3].map((i) => new Date(t0 + ((t1 - t0) * i) / 3).toISOString().slice(0, 10)))];
+  const xLabel = (d: string) => (spanDays > 1100 ? d.slice(0, 4) : spanDays > 200 ? fmtDate(d).replace(/^\d+ /, "") : fmtDate(d, false));
 
   function onMove(e: React.PointerEvent<SVGRectElement>) {
     const box = e.currentTarget.getBoundingClientRect();
@@ -129,8 +143,9 @@ export default function LineChart({ series, unit, ariaLabel, height = 260, range
           {ranges && (
             <div role="group" aria-label="Time range" className="inline-flex rounded-lg border border-line bg-card-2 p-0.5">
               {ranges.map((r) => (
-                <button key={r.label} type="button" onClick={() => setRange(r.label)} aria-pressed={range === r.label}
-                  className={`rounded-md px-2.5 py-1 text-xs font-semibold ${range === r.label ? "bg-card text-ink shadow-sm" : "text-ink-3 hover:text-ink"}`}>
+                <button key={r.label} type="button" onClick={() => setRange(r.label)} aria-pressed={range === r.label} disabled={tooYoung(r)}
+                  title={tooYoung(r) ? "This fund is younger than that" : undefined}
+                  className={`rounded-md px-2.5 py-1 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-35 ${range === r.label ? "bg-card text-ink shadow-sm" : "text-ink-3 hover:text-ink"}`}>
                   {r.label}
                 </button>
               ))}
@@ -150,7 +165,7 @@ export default function LineChart({ series, unit, ariaLabel, height = 260, range
           ))}
           {zeroLine && <line x1={MARGIN.left} x2={width - MARGIN.right} y1={Y(0)} y2={Y(0)} stroke="var(--line-strong)" strokeWidth="1" />}
           {xTicks.map((d, i) => (
-            <text key={d} x={X(d)} y={height - 6} textAnchor={xTicks.length === 1 ? "middle" : i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"} fontSize="11" fill="var(--ink-3)">{xLabel(d)}</text>
+            <text key={`${i}-${d}`} x={X(d)} y={height - 6} textAnchor={xTicks.length === 1 ? "middle" : i === 0 ? "start" : i === xTicks.length - 1 ? "end" : "middle"} fontSize="11" fill="var(--ink-3)">{xLabel(d)}</text>
           ))}
 
           {/* series: 2px lines, soft wash under a single series, end dot with a surface ring */}

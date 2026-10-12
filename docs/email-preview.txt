@@ -1,0 +1,42 @@
+Subject: Your Saturday money check-up: No action needed
+
+Meera's Money Check
+Week ending 10 Oct 2026
+
+NO ACTION NEEDED
+All your funds are doing fine and matching what they follow.
+
+LARGE CAP: Bandhan Nifty 50 Index Fund
+  1. Your large company fund went up 0.4% this week, though it is still down 13.1% since January.
+  2. Over the past month, it did about the same as the Nifty 50, and about the same as similar funds.
+  3. All of this week's move came from the whole market, and I do not know what caused it.
+  Price (NAV) ₹50.461 as of 9 Oct | This week +0.4% | Last month −3.9% | Year so far −13.1%
+
+MID CAP: Motilal Oswal Nifty Midcap 150 Index Fund
+  1. Your mid size company fund fell 0.2% this week, and it has fallen 2.6% since January.
+  2. Over the past month, it did about the same as the Nifty Midcap 150, and about the same as similar funds.
+  3. Almost all of the move came from the whole market, and I do not know what caused it.
+  Price (NAV) ₹39.2222 as of 9 Oct | This week −0.2% | Last month −6.0% | Year so far −2.6%
+
+SMALL CAP: Motilal Oswal Nifty Smallcap 250 Index Fund
+  1. Your small company fund fell 0.1% this week, but it is still up 5.5% since January.
+  2. Over the past month, it did about the same as the Nifty Smallcap 250, and about the same as similar funds.
+  3. Most of this week's small change came from the whole market, and I do not know what caused it.
+  Price (NAV) ₹39.3816 as of 9 Oct | This week −0.1% | Last month −4.7% | Year so far +5.5%
+
+SHORT DURATION DEBT: HDFC Short Term Fund
+  1. Your short term debt fund went up 0.1% this week, and it has gained 3.7% since January.
+  2. Over the past month, it did about the same as similar funds.
+  3. I honestly do not know what caused this week's tiny move.
+  Price (NAV) ₹35.4047 as of 9 Oct | This week +0.1% | Last month −0.2% | Year so far +3.7%
+
+INTERNATIONAL: Axis NASDAQ 100 US Specific Equity Passive FOF  (Outperforming)
+  1. Your foreign fund went up 2.3% this week, bringing its gain since January to 29.7%.
+  2. Over the past month, it did about the same as the Nasdaq 100, and better than similar funds.
+  3. Most of the gain came from the whole market, and I do not know of any news that explains it.
+  Price (NAV) ₹31.5275 as of 9 Oct | This week +2.3% | Last month +6.3% | Year so far +29.7%
+
+Open the full check-up: https://your-site.vercel.app
+
+Words written by Google Gemini and checked against the numbers.
+This is information to help you understand your funds, not investment advice.

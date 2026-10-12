@@ -58,13 +58,16 @@ export function daysBetween(fromIso: string, toIso: string): number {
   return Math.round((toUtcMs(toIso) - toUtcMs(fromIso)) / 86_400_000);
 }
 
-/** Same day-of-month one month earlier; clamps to month end (31 Mar -> 28 Feb). */
-export function oneMonthBefore(iso: string): string {
+/** Same day-of-month `n` months earlier; clamps to month end (31 Mar - 1 month -> 28 Feb, 29 Feb - 12 months -> 28 Feb). */
+export function monthsBefore(iso: string, n: number): string {
   const [y, m, d] = iso.split("-").map(Number);
-  const prevMonthIndex = m - 2; // 0-based month of the previous month (may be -1)
-  const lastDayOfPrev = new Date(Date.UTC(y, prevMonthIndex + 1, 0)).getUTCDate();
-  return fromUtcMs(Date.UTC(y, prevMonthIndex, Math.min(d, lastDayOfPrev)));
+  const targetIndex = m - 1 - n; // 0-based month index (may be negative; Date.UTC rolls the year)
+  const lastDayOfTarget = new Date(Date.UTC(y, targetIndex + 1, 0)).getUTCDate();
+  return fromUtcMs(Date.UTC(y, targetIndex, Math.min(d, lastDayOfTarget)));
 }
+
+/** Same day-of-month one month earlier; clamps to month end (31 Mar -> 28 Feb). */
+export const oneMonthBefore = (iso: string): string => monthsBefore(iso, 1);
 
 /** 31 December of the previous year; the nearest-earlier rule turns it into the last trading day. */
 export function endOfPreviousYear(iso: string): string {

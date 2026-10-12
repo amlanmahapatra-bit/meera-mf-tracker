@@ -12,7 +12,8 @@
     "test": "vitest run",
     "demo:returns": "tsx scripts/demo-returns.ts",
     "demo:comparison": "tsx scripts/demo-comparison.ts",
-    "pipeline": "tsx --env-file-if-exists=.env.local scripts/run-pipeline.ts"
+    "pipeline": "tsx --env-file-if-exists=.env.local scripts/run-pipeline.ts",
+    "email:preview": "tsx --env-file-if-exists=.env.local scripts/preview-email.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",

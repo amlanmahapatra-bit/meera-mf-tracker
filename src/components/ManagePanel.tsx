@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 type Fund = { scheme_code: number; name: string; slot: string; benchmark_name: string | null; peers: number };
 type Hit = { schemeCode: number; schemeName: string };
 type Preview = { schemeCode: number; name: string; fundHouse: string | null; latestNavDate: string; suggestion: { slot: string; benchmarkName: string | null; reason: string } };
+type EmailInfo = { configured: boolean; problem?: string; recipients: string[]; from?: string; tableReady: boolean; lastSent: string | null };
 type Run = { job: string; status: string; startedAt: string; finishedAt: string | null; error: string | null };
 type Props = { benchmarks: string[]; slots: string[] };
 
@@ -16,7 +17,7 @@ const input = "w-full rounded-xl border border-line-strong bg-card px-3.5 py-2.5
 const btn = "inline-flex items-center justify-center whitespace-nowrap rounded-xl bg-accent px-4 py-2.5 text-sm font-bold text-accent-ink hover:opacity-90 disabled:opacity-50";
 const btn2 = "inline-flex items-center justify-center whitespace-nowrap rounded-xl border border-line-strong bg-card px-4 py-2.5 text-sm font-semibold text-ink hover:bg-card-2 disabled:opacity-50";
 
-const JOB_WORDS: Record<string, string> = { daily_nav: "Daily price update", weekly_report: "Saturday check-up", manual_run: "Update now", backfill: "History fill" };
+const JOB_WORDS: Record<string, string> = { daily_nav: "Daily price update", weekly_report: "Saturday check-up", manual_run: "Update now", backfill: "Past history filled in" };
 const STATUS_WORDS: Record<string, string> = { success: "Worked", partial: "Worked (used a backup)", failed: "Failed", running: "Running" };
 
 async function api<T>(url: string, passcode: string, init: RequestInit = {}): Promise<{ ok: boolean; status: number; data: T & { error?: string } }> {
@@ -55,6 +56,8 @@ export default function ManagePanel({ benchmarks, slots }: Props) {
   const [bench, setBench] = useState("");
   const [confirming, setConfirming] = useState<number | null>(null);
   const [runResult, setRunResult] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
+  const [email, setEmail] = useState<EmailInfo | null>(null);
+  const [emailMsg, setEmailMsg] = useState<{ tone: "ok" | "bad"; text: string } | null>(null);
 
   const loadFunds = useCallback(async () => {
     try {
@@ -102,6 +105,25 @@ export default function ManagePanel({ benchmarks, slots }: Props) {
     window.dispatchEvent(new Event("passcode-change"));
   }
 
+  // Once unlocked, ask whether the Saturday email is ready (state is set only after the network answers).
+  useEffect(() => {
+    if (!passcode) return;
+    let alive = true;
+    fetch("/api/admin/email-status", { headers: { "x-admin-passcode": passcode } })
+      .then((r) => r.json())
+      .then((j) => { if (alive && j.ok) setEmail(j); })
+      .catch(() => undefined);
+    return () => { alive = false; };
+  }, [passcode]);
+
+  async function sendTest() {
+    setEmailMsg(null); setBusy("email");
+    const r = await api<{ reason?: string; status?: string }>("/api/admin/send-test-email", passcode, { method: "POST" });
+    setBusy("");
+    if (r.data.status === "sent") setEmailMsg({ tone: "ok", text: `${r.data.reason ?? "Test email sent."} It can take a minute to arrive; check spam too.` });
+    else setEmailMsg({ tone: "bad", text: r.data.reason ?? r.data.error ?? "The test email could not be sent." });
+  }
+
   async function search(e: React.FormEvent) {
     e.preventDefault();
     setMsg(null); setPreview(null); setHits(null); setBusy("search");
@@ -142,6 +164,20 @@ export default function ManagePanel({ benchmarks, slots }: Props) {
     if (!r.ok) return setMsg({ tone: "bad", text: r.data.error ?? "We could not remove that fund." });
     setMsg({ tone: "ok", text: `Removed ${r.data.removed.name}. Its history is kept, so you can add it back any time.` });
     loadFunds();
+  }
+
+  async function fillHistory() {
+    setRunResult(null); setBusy("history");
+    try {
+      const r = await api<{ status: string; skipped?: string; details?: { rowsWritten?: number; years?: number } }>("/api/admin/backfill?years=5", passcode, { method: "POST" });
+      if (!r.ok) setRunResult({ tone: "bad", text: r.data.error ?? "The history could not be filled in. Nothing was lost." });
+      else if (r.data.skipped) setRunResult({ tone: "bad", text: r.data.skipped });
+      else setRunResult({ tone: "ok", text: `Done. ${r.data.details?.rowsWritten ?? ""} weeks of history saved for your funds (up to ${r.data.details?.years ?? 5} years). It is safe to do this again any time.` });
+    } catch {
+      setRunResult({ tone: "bad", text: "We lost the connection before it finished. Check the log below in a minute." });
+    }
+    setBusy("");
+    loadRuns();
   }
 
   async function runNow() {
@@ -277,13 +313,33 @@ export default function ManagePanel({ benchmarks, slots }: Props) {
 
           <section aria-labelledby="run-h" className={card}>
             <h2 id="run-h" className="text-lg font-bold tracking-tight">Update now</h2>
-            <p className="mt-1 max-w-2xl text-sm text-ink-2">Saves the latest prices, reads this week&apos;s news and writes a fresh check-up. It takes about a minute. This also happens by itself every day and every Saturday morning.</p>
+            <p className="mt-1 max-w-2xl text-sm text-ink-2">&ldquo;Update now&rdquo; saves the latest prices, reads this week&apos;s news and writes a fresh check-up (about a minute). It also happens by itself every day and every Saturday morning. &ldquo;Fill in past history&rdquo; adds the past five years of weekly results to the trend chart, for example after you add a new fund.</p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button type="button" className={btn} onClick={runNow} disabled={busy === "run"}>{busy === "run" ? "Working, please wait about a minute..." : "Update now"}</button>
+              <button type="button" className={btn2} onClick={fillHistory} disabled={busy === "history" || busy === "run"}>{busy === "history" ? "Filling in history..." : "Fill in past history"}</button>
               {runResult && <Link href="/" className="text-sm font-semibold text-accent hover:underline">See the check-up</Link>}
             </div>
             {busy === "run" && <p role="status" className="mt-3 text-sm text-ink-2">Please keep this page open.</p>}
             {runResult && <p role="status" className={`mt-4 ${noteClass(runResult.tone)}`}>{runResult.text}</p>}
+          </section>
+
+          <section aria-labelledby="email-h" className={card}>
+            <h2 id="email-h" className="text-lg font-bold tracking-tight">Saturday email</h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-2">Your check-up is emailed automatically every Saturday morning (India time), right after it is made. It is never sent when you press &ldquo;Update now&rdquo;.</p>
+            {email === null ? <div className="mt-3 h-10 animate-pulse rounded-xl bg-card-2" aria-busy="true" /> : email.configured ? (
+              <dl className="mt-3 space-y-1 text-sm">
+                <div className="flex gap-2"><dt className="w-28 shrink-0 font-semibold">Goes to</dt><dd className="text-ink-2">{email.recipients.join(", ")}</dd></div>
+                <div className="flex gap-2"><dt className="w-28 shrink-0 font-semibold">Sent from</dt><dd className="text-ink-2">{email.from}</dd></div>
+                <div className="flex gap-2"><dt className="w-28 shrink-0 font-semibold">Last sent</dt><dd className="text-ink-2">{email.lastSent ? `week ending ${email.lastSent}` : "not yet"}</dd></div>
+              </dl>
+            ) : (
+              <p className="mt-3 rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">{email.problem ?? "Email is not set up yet."} Add the email settings where the site is hosted and it will switch on by itself.</p>
+            )}
+            {email && !email.tableReady && <p className="mt-3 rounded-xl bg-warn-soft px-4 py-3 text-sm text-warn">One setup step is missing: run <code>sql/002_email_log.sql</code> in Supabase. Until then no weekly email is sent (this protects against sending the same week twice).</p>}
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button type="button" className={btn2} onClick={sendTest} disabled={busy === "email" || !email?.configured}>{busy === "email" ? "Sending..." : "Send me a test email now"}</button>
+            </div>
+            {emailMsg && <p role="status" className={`mt-4 ${noteClass(emailMsg.tone)}`}>{emailMsg.text}</p>}
           </section>
         </>
       )}

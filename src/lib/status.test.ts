@@ -23,6 +23,27 @@ describe("fundStatus", () => {
   it("still flags a long streak when the gap is unknown", () => expect(fundStatus(null, 5)).toBe("amber"));
 });
 
+describe("tracking allowance (funds that cannot follow their index closely)", () => {
+  it("widens the green and amber limits by the allowance", () => {
+    expect(fundStatus(-1.4, 0)).toBe("amber");
+    expect(fundStatus(-1.4, 0, 1.5)).toBe("green"); // inside -1.0 - 1.5
+    expect(fundStatus(-3.4, 0, 1.5)).toBe("amber"); // inside -3.0 - 1.5
+    expect(fundStatus(-4.6, 0, 1.5)).toBe("red");
+  });
+  it("still flags a real, large gap", () => {
+    expect(fundStatus(-6, 0, 1.5)).toBe("red");
+  });
+  it("a week only counts as behind when it trails by more than the tolerance plus the allowance", () => {
+    expect(isBehindThisWeek(-1.0)).toBe(true);
+    expect(isBehindThisWeek(-1.0, 1.5)).toBe(false);
+    expect(nextWeeksLagging(3, -1.0, 1.5)).toBe(0);
+    expect(nextWeeksLagging(3, -2.0, 1.5)).toBe(4);
+  });
+  it("an allowance of zero changes nothing", () => {
+    expect(fundStatus(-1.4, 0, 0)).toBe(fundStatus(-1.4, 0));
+  });
+});
+
 describe("weeks lagging", () => {
   it("ignores tiny noise", () => {
     expect(isBehindThisWeek(-0.2)).toBe(false);
@@ -50,7 +71,7 @@ describe("candidateVerdict", () => {
     const v = candidateVerdict([fund("Large Cap", "green"), fund("Mid Cap", "amber", -2.3)]);
     expect(v.verdict).toBe(VERDICTS.watch);
     expect(v.reason).toContain("Mid Cap");
-    expect(v.reason).toContain("2.3 points behind the market");
+    expect(v.reason).toContain("2.3% worse than the market");
   });
   it("two or more flagged funds -> consider reviewing", () => {
     const v = candidateVerdict([fund("Mid Cap", "amber", -2), fund("Small Cap", "red", -5), fund("Large Cap", "green")]);

@@ -8,6 +8,11 @@ const NAMES = [
   "GNEWS_API_KEY",
   "CRON_SECRET",
   "ADMIN_PASSCODE",
+  // Saturday email (all optional: without them the email step is simply skipped)
+  "RESEND_API_KEY",
+  "REPORT_EMAIL_TO",
+  "RESEND_FROM",
+  "SITE_URL",
 ] as const;
 
 export type EnvName = (typeof NAMES)[number];

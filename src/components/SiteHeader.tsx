@@ -17,7 +17,6 @@ export default function SiteHeader() {
           <Suspense fallback={<nav aria-label="Main" className="flex items-center gap-1 text-sm font-semibold text-ink-2"><Link href="/" className="px-3 py-1.5">This week</Link><Link href="/manage" className="px-3 py-1.5">My funds</Link><Link href="/how-it-works" className="px-3 py-1.5">How it works</Link></nav>}>
             <NavLinks />
           </Suspense>
-          <Link href="/share" className="hidden rounded-lg bg-accent px-3 py-2 text-sm font-semibold text-accent-ink hover:opacity-90 sm:inline-flex">Send to my CA</Link>
           <ThemeToggle />
         </div>
       </div>

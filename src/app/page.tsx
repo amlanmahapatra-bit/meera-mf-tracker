@@ -69,17 +69,17 @@ async function Dashboard() {
         </p>
       )}
       <VerdictBanner report={report} dataAsOf={dataAsOf} />
-      <ShareCard report={report} />
-      <IndexStrip moves={report.marketContext.indexMoves} />
       <section aria-labelledby="funds-title">
-        <h2 id="funds-title" className="text-lg font-bold tracking-tight">Your funds</h2>
-        <p className="mt-1 text-sm text-ink-2">Tap a fund to see its price history and the full comparison.</p>
+        <h2 id="funds-title" className="text-lg font-bold tracking-tight">Your funds, in plain words</h2>
+        <p className="mt-1 text-sm text-ink-2">Three short lines for each fund. Tap a fund to see its whole history.</p>
         <div className="mt-3 space-y-4">
           {funds.map((f, i) => <FundCard key={f.schemeCode} fund={f} prices={priceSets[i]} />)}
         </div>
       </section>
+      <IndexStrip moves={report.marketContext.indexMoves} />
       <TrendSection funds={funds} snapshots={snapshots} />
       <NewsList news={report.marketContext.news} />
+      <ShareCard report={report} />
     </div>
   );
 }

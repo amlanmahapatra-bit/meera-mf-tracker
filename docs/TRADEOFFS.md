@@ -91,4 +91,24 @@ For each major decision: what we chose, what else we considered, and why. Weakne
 
 - **Chose:** compare the index and peers over the *fund's own* start and end dates.
 - **Why:** with independently chosen dates a Nifty 50 index fund looked 1.3 points off its index purely because the index had one extra trading day. On matched dates the gap is 0.00.
-- **Extra for the US fund:** the Nasdaq is converted to rupees and paired with the US close a NAV actually reflects (the NAV dated 9 Oct uses the 8 Oct US close and the 9 Oct rupee rate). A small week-level difference remains (the fund uses its own exchange-rate timing).
+- **For the US fund (Nasdaq):** converted to rupees, and tested against the fund's real prices rather than assumed. My first assumption (the NAV dated D reflects the US close of D minus 1) was based on one date and was **wrong**: over 188 Saturdays since March 2023, same-day matching fits better (month error 1.33% vs 1.43%; 14% vs 24% of weeks off by more than 1.5%). Even the best alignment leaves about 1.3% of monthly noise, which is the fund's own timing, not performance. See decision 16.
+
+## 14. Saturday email via Resend
+
+- **Chose:** Resend's HTTP API (free: 3,000 emails a month, 100 a day; one email a week is far inside that), called with plain `fetch`, sent from the Saturday job right after the report is saved.
+- **Considered:** SMTP with a Gmail account (fragile, app passwords), SendGrid/Mailgun (more setup), sending from the browser (no).
+- **Safety:** the week is claimed in an `email_log` table with a unique index before sending, plus Resend's `Idempotency-Key` header, so a re-run, a retry or two simultaneous jobs can never send the same week twice. If the log cannot be read, nothing is sent (better no email than a duplicate). A failed email never fails the saved report; it is recorded and shown. "Update now" never emails; only the scheduled job does, and a separate clearly marked test button exists.
+- **Weaknesses:** without a verified domain Resend only delivers to the owner's own address (the code explains this in plain words when Resend refuses); Hobby cron timing is approximate, so "Saturday 7:30" can arrive within the hour; email clients render HTML differently, so the layout is simple tables with inline styles and a plain-text version is included.
+
+## 15. Five years of history by replaying the same code
+
+- **Chose:** compute past weekly snapshots from the stored price histories using the very same functions as a live Saturday (`computeFundSnapshots`), writing only weeks before the first real report and only numbers (no written summary).
+- **Considered:** waiting for weeks to accumulate (the trend chart would be empty at submission); hand-entering history (error-prone).
+- **Why:** it makes the trend chart real from day one, is repeatable (upserts; verified 1,249 rows after two runs), and cannot overwrite a real report.
+- **Weaknesses:** the replay uses today's thresholds and today's list of similar funds (funds that did not yet exist are skipped, and the similar-funds average only includes those with history), so past statuses are "what today's rules would have said", not what was shown at the time.
+
+## 16. A tolerance for funds that follow their index loosely
+
+- **Chose:** `trackingAllowance` per index in `src/lib/config.ts`: 0 for Indian index funds (they copy their index within about 0.05%), 1.5 percentage points for the US fund. It widens the traffic-light thresholds and the "behind this week" test by that amount.
+- **Why:** without it the US fund showed 47 amber and 4 red weeks over five years, mostly timing noise rather than performance, which would make Meera worry for no reason. With it: 198 green, 3 isolated amber, 4 not-enough-data weeks.
+- **Weakness:** it is a judgement call (set from the measured noise, about 1.3% a month), and it makes the light slower to turn amber for that one fund. It is documented in the config, the README and here.

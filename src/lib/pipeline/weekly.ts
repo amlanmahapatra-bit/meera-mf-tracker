@@ -2,20 +2,22 @@ import { addDays, computeReturns, type Point } from "../returns";
 import { alignedReturns, compareFund, convertToInr, matchedReturns, peerAverageMatched } from "../comparison";
 import { BENCHMARKS, MARKET_CONTEXT_INDEXES, USDINR_SYMBOL } from "../config";
 import { istToday, weekEndingFor } from "../dates";
-import { getActiveFunds, previousSnapshot, recentStatuses, upsertReport, upsertSnapshots, type SnapshotRow } from "../db";
+import { getActiveFunds, previousSnapshot, recentStatuses, upsertReport, upsertSnapshots } from "../db";
 import { SMALLCAP_NOTICE } from "../notices";
 import { writeReport } from "../report-writer";
 import type { FundReport, IndexMove, ReportInput, ReportJson } from "../report-types";
 import { fetchHeadlines } from "../sources/news";
+import { snapshotDraft, type SnapshotDraft } from "../snapshots";
 import { candidateVerdict, fundStatus, nextWeeksLagging } from "../status";
 import { loadFundNav, loadIndex, loadPeerSeries, type Loaded } from "./load";
+import { sendWeeklyEmail, type EmailOutcome } from "./email";
 import type { JobOutcome } from "./run";
 
 /**
  * The Saturday-morning job. Stages: fetch -> store -> compute -> context -> write -> validate -> store.
  * Re-running for the same week updates that week's rows instead of adding new ones.
  */
-export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<JobOutcome> {
+export async function runWeekly(opts: { weekEnding?: string; sendEmail?: boolean } = {}): Promise<JobOutcome> {
   const weekEnding = opts.weekEnding ?? weekEndingFor(istToday());
   const notes: string[] = [];
   const failures: string[] = [];
@@ -36,7 +38,7 @@ export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<Job
   // --- Per-fund numbers ---
   const reportFunds: Omit<FundReport, "sentences">[] = [];
   const recent: ReportInput["recentStatuses"] = {};
-  const snapshotDrafts: Omit<SnapshotRow, "summary">[] = [];
+  const snapshotDrafts: SnapshotDraft[] = [];
 
   for (const f of funds) {
     let nav: Loaded;
@@ -75,8 +77,9 @@ export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<Job
     // Status: streak continues only from the immediately preceding week's snapshot.
     const prev = await previousSnapshot(f.scheme_code, weekEnding);
     const prevStreak = prev && prev.week_ending >= addDays(weekEnding, -10) ? prev.weeks_lagging : 0;
-    const weeksLagging = nextWeeksLagging(prevStreak, comparison.gapVsReference.week);
-    const status = fundStatus(comparison.gapVsReference.month, weeksLagging);
+    const allowance = cfg?.trackingAllowance ?? 0;
+    const weeksLagging = nextWeeksLagging(prevStreak, comparison.gapVsReference.week, allowance);
+    const status = fundStatus(comparison.gapVsReference.month, weeksLagging, allowance);
     const referenceLabel = comparison.reference === "benchmark" ? `the ${f.benchmark_name}` : "similar funds";
 
     recent[f.scheme_code] = await recentStatuses(f.scheme_code, weekEnding);
@@ -85,14 +88,7 @@ export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<Job
       schemeCode: f.scheme_code, name: f.name, slot: f.slot, status, weeksLagging,
       nav: fundReturns.latestValue, asOf: fundReturns.asOf, comparison, referenceLabel, dataNotes,
     });
-    snapshotDrafts.push({
-      week_ending: weekEnding, scheme_code: f.scheme_code, nav: fundReturns.latestValue,
-      ret_1w: comparison.fund.week, ret_1m: comparison.fund.month, ret_ytd: comparison.fund.ytd,
-      bench_ret_1w: comparison.benchmark?.week ?? null, bench_ret_1m: comparison.benchmark?.month ?? null, bench_ret_ytd: comparison.benchmark?.ytd ?? null,
-      cat_avg_1w: comparison.category.week, cat_avg_1m: comparison.category.month, cat_avg_ytd: comparison.category.ytd,
-      market_part_1w: comparison.split?.marketPart ?? null, fund_part_1w: comparison.split?.fundPart ?? null,
-      status, weeks_lagging: weeksLagging,
-    });
+    snapshotDrafts.push(snapshotDraft(weekEnding, f.scheme_code, fundReturns.latestValue, comparison, status, weeksLagging));
   }
   if (reportFunds.length === 0) throw new Error(`No fund could be analysed. ${failures.join(" | ")}`);
 
@@ -133,11 +129,19 @@ export async function runWeekly(opts: { weekEnding?: string } = {}): Promise<Job
     market_context: report.marketContext as unknown as Record<string, unknown>, report_json: report as unknown as Record<string, unknown>,
   });
 
+  // The Saturday email goes out only when asked (the scheduled job asks; "Update now" does not). Whatever happens here,
+  // the report above is already saved, and a failed email is recorded rather than breaking the run.
+  let email: EmailOutcome | null = null;
+  if (opts.sendEmail) {
+    email = await sendWeeklyEmail(report).catch((e): EmailOutcome => ({ status: "failed", reason: (e as Error).message, recipients: 0 }));
+    if (email.status === "failed") notes.push(`Email: ${email.reason}`);
+  }
+
   return {
     status: failures.length || notes.length ? "partial" : "success",
     details: {
       weekEnding, fundsReported: reportFunds.length, fundsTotal: funds.length, verdict: report.verdict,
-      newsSource: news.source, writer: written.writer.kind, notes, failures,
+      newsSource: news.source, writer: written.writer.kind, email: email ? { status: email.status, reason: email.reason } : "not requested", notes, failures,
     },
   };
 }

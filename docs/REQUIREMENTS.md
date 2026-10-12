@@ -3,7 +3,7 @@
 Every instruction in `CLAUDE.md`, with its real status. Updated as work lands.
 Legend: ✅ done and verified · 🟡 built, one part still to verify or finish · ⏳ not started yet (planned) · ➖ deliberately not done (reason given)
 
-_Last updated: after build steps 1–9, the OpenRouter switch, and the first UI round (dashboard, fund pages, share, manage, how it works)._
+_Last updated: after the plain-words redesign, long-history charts, five-year weekly backfill and the Saturday email build._
 
 ## 1. Hard rules from the exam
 
@@ -60,7 +60,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 |---|---|---|
 | 1 | Daily cron: latest NAV for active funds → `nav_history` | ✅ route + job tested; `vercel.json` ⏳ live on Vercel |
 | 2 | Saturday cron: context, snapshots, Gemini, save to `weekly_snapshots` + `weekly_reports` | ✅ tested end to end live (status `success`) |
-| 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ✅ `src/app/page.tsx` + `FundCard`, `VerdictBanner`, `SplitBar`, `TrendSection`. First round shown to the owner; polish continues from their comments. Trend chart fills in as weeks accumulate (1 week saved so far). |
+| 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ✅ (owner round 2: the three plain lines are now the hero of each card; Send to CA is optional; trend chart has 5 real years) `src/app/page.tsx` + `FundCard`, `VerdictBanner`, `SplitBar`, `TrendSection`. First round shown to the owner; polish continues from their comments. Trend chart fills in as weeks accumulate (1 week saved so far). |
 | 4 | Add/remove fund form: search by NAME (Direct + Growth only), or paste code; validate, backfill, suggest slot/benchmark, find peers; remove = `active=false`; `ADMIN_PASSCODE` | ✅ `/manage` |
 | 5 | "Run now" so the site has real data | ✅ `/api/admin/run` (verified: 63 s, double-run guard works) · "Update now" button on `/manage` with progress and result |
 | 6 | Graceful failures: last good data + "data as of" note, never a blank crash | ✅ backend cache fallback · on screen: "prices as of", per-fund fallback notes, "last week's report" notice, loading skeletons, error and empty states (`error.tsx`, `not-found.tsx`) |
@@ -69,10 +69,10 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 
 | # | Feature | Status |
 |---|---|---|
-| 7 | "Send to my CA" WhatsApp button (`wa.me/?text=`) | ✅ dashboard card, each fund page, and `/share` (WhatsApp, email, copy, CSV, print/PDF); message lists every fund's name, scheme code, NAV, date and returns (`src/lib/share.ts`, tested) |
+| 7 | "Send to my CA" WhatsApp button (optional extra, small and out of the way) (`wa.me/?text=`) | ✅ dashboard card, each fund page, and `/share` (WhatsApp, email, copy, CSV, print/PDF); message lists every fund's name, scheme code, NAV, date and returns (`src/lib/share.ts`, tested) |
 | 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (each question costs about a cent; add a daily cap) |
 | 9 | English / Hinglish toggle | 🟡 prompt ready · toggle ⏳ (lowest priority) |
-| 10 | Saturday email delivery | ⏳ (lowest priority; needs a free email service, ask first) |
+| 10 | Saturday email delivery | 🟡 fully built and tested (Resend; HTML + text; never-twice log; only on the Saturday job; test button). Switches on when the owner provides a Resend key, the recipient address and the sender; the `sql/002_email_log.sql` migration must be run once. |
 
 ## 6. Build order
 

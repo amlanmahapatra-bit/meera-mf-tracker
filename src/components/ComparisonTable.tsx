@@ -1,4 +1,6 @@
-import { fmtPct, fmtPoints, toneClass } from "@/lib/format";
+import { BENCHMARKS } from "@/lib/config";
+import { fmtPct, toneClass } from "@/lib/format";
+import { gapPhrase } from "@/lib/present";
 import type { FundComparison, WindowValues } from "@/lib/comparison";
 import Term from "./Term";
 
@@ -9,9 +11,9 @@ const COLS: { key: keyof WindowValues; label: string }[] = [
 ];
 
 function Gap({ v }: { v: number | null }) {
-  if (v === null) return <span className="text-ink-3">{"—"}</span>;
-  if (Math.abs(v) < 0.15) return <span className="font-semibold text-ink-2">In line</span>;
-  return <span className={`font-semibold ${toneClass(v)}`}>{fmtPoints(v)} {v > 0 ? "ahead" : "behind"}</span>;
+  const g = gapPhrase(v);
+  const tone = g.tone === "good" ? "text-good" : g.tone === "bad" ? "text-bad" : g.tone === "flat" ? "text-ink-2" : "text-ink-3";
+  return <span className={`font-semibold ${tone}`}>{g.text}</span>;
 }
 
 /** The full numbers behind the card: the fund, what it is compared with, and the gaps, for all three periods. */
@@ -21,11 +23,11 @@ export default function ComparisonTable({ c }: { c: FundComparison }) {
   ];
   if (c.benchmarkName && c.benchmark && c.gapVsBenchmark) {
     rows.push({ label: <>The <Term k="index">{c.benchmarkName}</Term></>, vals: c.benchmark, kind: "pct" });
-    rows.push({ label: "Fund versus the index", vals: c.gapVsBenchmark, kind: "gap" });
+    rows.push({ label: "Your fund compared with the market", vals: c.gapVsBenchmark, kind: "gap" });
   }
   if (c.peersRequested > 0) {
     rows.push({ label: <>Average of {c.peersUsed} <Term k="similar">similar funds</Term></>, vals: c.category, kind: "pct" });
-    rows.push({ label: "Fund versus similar funds", vals: c.gapVsCategory, kind: "gap" });
+    rows.push({ label: "Your fund compared with similar funds", vals: c.gapVsCategory, kind: "gap" });
   }
   return (
     <div className="themed overflow-x-auto rounded-2xl border border-line bg-card shadow-card">
@@ -50,6 +52,9 @@ export default function ComparisonTable({ c }: { c: FundComparison }) {
           ))}
         </tbody>
       </table>
+      {c.benchmarkName && (BENCHMARKS[c.benchmarkName]?.trackingAllowance ?? 0) > 0 && (
+        <p className="border-t border-line px-4 py-3 text-xs text-ink-3">This fund follows its market score loosely (it is priced at a different time of day), so gaps of up to {BENCHMARKS[c.benchmarkName].trackingAllowance}% are normal and do not change its traffic light.</p>
+      )}
       {!c.benchmarkName && <p className="border-t border-line px-4 py-3 text-xs text-ink-3">There is no free market index for this kind of fund, so it is compared with similar funds only.</p>}
       {c.benchmarkMissing && <p className="border-t border-line px-4 py-3 text-xs text-warn">The {c.benchmarkName} could not be loaded this time, so only similar funds are used.</p>}
     </div>

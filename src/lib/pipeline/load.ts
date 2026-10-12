@@ -40,11 +40,11 @@ export async function loadFundNav(code: number): Promise<Loaded> {
  * Index closes. Today's row is dropped: a day that is still in progress is not a close,
  * and a half-finished value would make Meera's numbers wrong.
  */
-export async function loadIndex(symbol: string, label: string): Promise<Loaded> {
+export async function loadIndex(symbol: string, label: string, opts: { range?: string; storeAll?: boolean } = {}): Promise<Loaded> {
   const today = istToday();
   try {
-    const live = (await fetchIndexSeries(symbol)).filter((p) => p.date < today);
-    const stored = await latestStoredDate("index_history", "symbol", symbol).catch(() => null);
+    const live = (await fetchIndexSeries(symbol, opts.range ?? "2y")).filter((p) => p.date < today);
+    const stored = opts.storeAll ? null : await latestStoredDate("index_history", "symbol", symbol).catch(() => null);
     await upsertIndex(symbol, tailSince(live, stored));
     return { series: live, source: "live", note: "", asOf: live[live.length - 1].date };
   } catch (liveError) {

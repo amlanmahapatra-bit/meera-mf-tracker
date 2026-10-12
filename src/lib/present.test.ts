@@ -14,10 +14,10 @@ describe("shortName", () => {
 });
 
 describe("gapPhrase", () => {
-  it("says in line for tiny gaps", () => expect(gapPhrase(0.1)).toEqual({ text: "In line", tone: "flat" }));
-  it("says ahead / behind with points", () => {
-    expect(gapPhrase(1.6)).toEqual({ text: "1.6 points ahead", tone: "good" });
-    expect(gapPhrase(-1.04)).toEqual({ text: "1.0 point behind", tone: "bad" });
+  it("says about the same for tiny gaps", () => expect(gapPhrase(0.1)).toEqual({ text: "About the same", tone: "flat" }));
+  it("says better / worse in everyday words", () => {
+    expect(gapPhrase(1.6)).toEqual({ text: "1.6% better", tone: "good" });
+    expect(gapPhrase(-1.04)).toEqual({ text: "1.0% worse", tone: "bad" });
   });
   it("handles missing", () => expect(gapPhrase(null).tone).toBe("na"));
 });
@@ -33,8 +33,8 @@ describe("comparisonRows", () => {
   it("lists the index and the similar funds", () => {
     const r = comparisonRows(base({}));
     expect(r.map((x) => x.label)).toEqual(["the Nifty 50", "the average of 3 similar funds"]);
-    expect(r[0].phrase.text).toBe("In line");
-    expect(r[1].phrase.text).toBe("1.2 points ahead");
+    expect(r[0].phrase.text).toBe("About the same");
+    expect(r[1].phrase.text).toBe("1.2% better");
   });
   it("debt fund: only similar funds", () => {
     const r = comparisonRows(base({ benchmarkName: null, benchmark: null, gapVsBenchmark: null, peersUsed: 1 }));

@@ -3,6 +3,7 @@
  * Gemini only EXPLAINS numbers that code computed; this file is what enforces that.
  */
 import { VERDICTS, type Verdict } from "./config";
+import { gapWords } from "./report-template";
 import type { ReportInput, ReportLanguage } from "./report-types";
 
 const r2 = (n: number | null) => (n === null ? null : Math.round(n * 100) / 100);
@@ -23,6 +24,11 @@ export function buildFacts(input: ReportInput) {
       recentWeeksStatus: (input.recentStatuses[f.schemeCode] ?? []).map((s) => s.status),
       fundReturnsPercent: trio(f.comparison.fund),
       comparedWith: f.comparison.reference === "benchmark" ? f.referenceLabel : "similar funds only (no market index is available for this fund)",
+      // Decided by code from the LAST MONTH gaps (the same numbers the screen uses), so words and labels never disagree.
+      monthComparison: {
+        withComparedWith: f.comparison.reference === "benchmark" ? gapWords(f.comparison.gapVsReference.month) : null,
+        withSimilarFunds: f.comparison.peersUsed > 0 ? gapWords(f.comparison.gapVsCategory.month) : null,
+      },
       comparedWithReturnsPercent: trio(f.comparison.reference === "benchmark" ? f.comparison.benchmark : f.comparison.category),
       gapVersusComparedWithPoints: trio(f.comparison.gapVsReference),
       similarFundsAverage: {
@@ -46,20 +52,23 @@ export function buildSystemPrompt(language: ReportLanguage): string {
   const lang =
     language === "hinglish"
       ? "Write in simple Hinglish (Hindi words in English letters mixed with English), the way a friendly Indian friend would explain it. Keep numbers and fund names as given."
-      : "Write in simple, warm, everyday English.";
+      : "Write in very simple, warm, everyday English, like talking to a friend over chai.";
   return [
-    "You write a calm Saturday-morning mutual fund check-up for Meera, a 28-year-old who has 5 SIPs and is NOT a finance professional. She dislikes jargon.",
+    "You write a calm Saturday-morning check-up on mutual funds for Meera, a 28-year-old who has never studied finance and dislikes jargon. She wants to know, in very simple words, what each fund looks like this week.",
     lang,
-    "You are given FACTS as JSON. Every number in the facts was computed by code. You only explain them.",
-    "HARD RULES:",
-    "1. Use ONLY numbers that appear in the FACTS. Never calculate new numbers, never estimate, ROUND every number to exactly one decimal place (0.06 becomes 0.1, 2.28 becomes 2.3). Write percentages like 2.1%.",
-    "2. For each fund write EXACTLY three sentences, each a single sentence: (1) how the fund did this week, over the last month and since January; (2) how that compares with what it is compared with (use the words in 'comparedWith', and the average of similar funds, saying how many funds were used); (3) which market events explain the difference, citing ONLY headlines from the FACTS by putting the exact headline title in quotes. If the headlines do not clearly explain the move, say plainly that you don't know. If 'thisWeekSplit' is present, say how much of the move came from the whole market and how much from the fund itself.",
-    "3. No jargon: never use the words alpha, beta, Sharpe, volatility, benchmark, outperform, underperform, basis points, CAGR, AUM, expense ratio, NAV. Say 'price' not NAV, 'the market index' or the index's name not 'benchmark', 'behind/ahead of' not 'under/outperformed'.",
-    "4. Never give investment advice: no buy, sell, switch, redeem, 'you should', or predictions. Describe, do not advise.",
-    "5. Calm, kind tone. Never alarming.",
-    "5b. Never write a minus sign or a plus sign in front of a number. Say 'fell 2.1%' or 'down 2.1%' for a loss and 'rose 2.1%' or 'up 2.1%' for a gain, as a friend would. Say 'in line with' when the gap is under 0.15 points (not 'ahead' or 'behind'), and use 'ahead of' / 'behind' only for bigger gaps.",
-    "6. Overall: choose 'verdict' as exactly one of: \"No action needed\", \"One fund worth watching\", \"Consider reviewing your allocation\". Start from 'suggestedVerdict' and keep it unless the facts clearly show otherwise. 'verdictReason' is ONE specific sentence naming the fund(s) and the numbers behind it.",
+    "You are given FACTS as JSON. Every number in the facts was computed by code. You only explain them in plain words.",
+    "RULES:",
+    "1. For each fund write EXACTLY three SHORT sentences, each one sentence of at most 25 words:",
+    "   (1) What happened: how the fund did this week, and how it has done since January.",
+    "   (2) How it compares: did it do better, worse or about the same as the market (use the name in 'comparedWith') and as similar funds? Use EXACTLY the phrases given in 'monthComparison' (for example 'a little better than'), after words like 'it was' or 'it did': 'withComparedWith' is for the market (if it is null, do not mention the market, only similar funds), 'withSimilarFunds' is for similar funds. Do not judge it yourself and do not add numbers here.",
+    "   (3) Why: say whether this week's move came mostly from the whole market or from the fund itself (use 'thisWeekSplit' if it is there). Mention a headline ONLY if it clearly explains the move, with its exact title in quotes. Otherwise say honestly that you do not know what caused it.",
+    "2. Use at most TWO numbers in a sentence. Only use numbers from the FACTS, rounded to one decimal place and written like 2.1%. Never calculate new numbers. Never write a minus or plus sign in front of a number: say 'went up 2.1%' or 'fell 2.1%'.",
+    "3. Use everyday words: went up, fell, did better than, did worse than, about the same as, the market, similar funds, since January. Say 'about the same' when the gap is small (under 0.15). Do not repeat the long fund name.",
+    "4. NEVER use these words: index, indices, benchmark, points, percentage, outperform, underperform, alpha, beta, volatility, NAV, CAGR, AUM, peers, allocation, basis points, expense ratio, momentum, correction, rally, bullish, bearish.",
+    "5. Never give investment advice: no buy, sell, switch, redeem, 'you should', or predictions. Describe, do not advise. Keep a calm, kind tone, never alarming.",
+    "6. Overall: choose 'verdict' as exactly one of: \"No action needed\", \"One fund worth watching\", \"Consider reviewing your allocation\". Start from 'suggestedVerdict' and keep it unless the facts clearly show otherwise. 'verdictReason' is ONE short sentence in plain words that names the fund(s) that matter (or says all are fine).",
     "7. Return the funds in the same order as the FACTS, each with its schemeCode.",
+    "STYLE EXAMPLE (copy the style, never the words or numbers): (1) \"Your large company fund went up [X]% this week, but it is still down [Y]% since January.\" (2) \"That is about the same as the market, and about the same as similar funds.\" (3) \"Almost all of the move came from the market itself, and I do not know of any news that explains it.\"",
   ].join("\n");
 }
 
@@ -91,7 +100,11 @@ export const RESPONSE_SCHEMA = {
 export type GeminiAnswer = { funds: { schemeCode: number; sentences: [string, string, string] }[]; verdict: Verdict; verdictReason: string };
 export type ValidationResult = { ok: true; answer: GeminiAnswer } | { ok: false; problems: string[] };
 
-const JARGON = /\b(alpha|beta|sharpe|volatility|benchmark|outperform\w*|underperform\w*|basis points?|bps|cagr|aum|expense ratio|nav)\b/i;
+const JARGON = /\b(alpha|beta|sharpe|volatility|benchmark\w*|outperform\w*|underperform\w*|basis points?|bps|cagr|aum|expense ratio|nav|index(?!\s+fund)|indices|points?|percentage|peers?|allocation|momentum|correction|rally|bullish|bearish)\b/i;
+/** Plain-language limits for one sentence. */
+export const MAX_WORDS = 30; // asked for 25; a little slack so a slightly longer sentence does not trigger a retry
+export const MAX_NUMBERS = 2;
+
 /** A minus or plus sign glued to a number ("-2.6%", "+0.4"): spreadsheet-speak, not plain language. */
 const SIGNED_NUMBER = /(?:^|[\s(])[-−–+]\s?\d/;
 const ADVICE = /\b(buy|sell|switch|redeem|invest more|you should|i recommend|must exit)\b/i;
@@ -161,21 +174,29 @@ export function validateAnswer(raw: unknown, input: ReportInput, facts: unknown)
   }
   if (typeof a.verdictReason === "string") texts.push({ where: "verdictReason", text: a.verdictReason });
 
-  // The "market or fund?" split is the signature feature: when we computed one, sentence 3 must state the market's part.
-  for (const f of a.funds) {
+  // The "market or fund?" split is the signature feature: when we computed one, sentence 3 must say where the move came from.
+  for (const f of a_funds(a)) {
     const src = input.funds.find((x) => x.schemeCode === f?.schemeCode);
     const third = Array.isArray(f?.sentences) ? f.sentences[2] : undefined;
-    if (src?.comparison.split && typeof third === "string") {
-      const market = Math.abs(src.comparison.split.marketPart).toFixed(1);
-      if (!numbersIn(third).some((n) => n.toFixed(1) === market)) {
-        problems.push(`Fund ${f.schemeCode}, sentence 3: must say how much of this week's move (${market}%) came from the whole market and how much from the fund itself.`);
-      }
+    if (src?.comparison.split && typeof third === "string" && !/market/i.test(third)) {
+      problems.push(`Fund ${f.schemeCode}, sentence 3: must say whether this week's move came from the whole market or from the fund itself.`);
     }
   }
 
+  // Names such as "Nifty 50" or "Bandhan Nifty 50 Index Fund" contain digits and words that are not Meera's problem.
+  const names = [
+    ...input.funds.flatMap((f) => [f.name, f.comparison.benchmarkName ?? ""]),
+    ...input.marketContext.indexMoves.map((m) => m.name),
+  ].filter((n) => n.length > 2).sort((x, y) => y.length - x.length);
+  const stripNames = (t: string) => names.reduce((acc, n) => acc.split(n).join(" "), t);
+
   for (const { where, text } of texts) {
     const plain = stripQuotes(text);
-    if (JARGON.test(plain)) problems.push(`${where}: uses jargon ("${JARGON.exec(plain)![0]}"). Use plain words.`);
+    const plainNoNames = stripNames(plain);
+    if (JARGON.test(plainNoNames)) problems.push(`${where}: uses a word that is not plain language ("${JARGON.exec(plainNoNames)![0]}"). Use everyday words.`);
+    const wordCount = plain.trim().split(/\s+/).length;
+    if (wordCount > MAX_WORDS) problems.push(`${where}: too long (${wordCount} words). Keep each sentence under 25 words.`);
+    if (numberTokens(plainNoNames).length > MAX_NUMBERS) problems.push(`${where}: too many numbers. Use at most ${MAX_NUMBERS} numbers in a sentence and explain the rest in words.`);
     if (ADVICE.test(plain)) problems.push(`${where}: gives advice ("${ADVICE.exec(plain)![0]}"). Describe only.`);
     if (SIGNED_NUMBER.test(plain)) problems.push(`${where}: has a minus or plus sign in front of a number. Write "fell 2.1%" or "rose 2.1%" instead.`);
     for (const t of numberTokens(plain)) {
@@ -195,4 +216,9 @@ export function validateAnswer(raw: unknown, input: ReportInput, facts: unknown)
 
   if (problems.length) return { ok: false, problems: [...new Set(problems)].slice(0, 12) };
   return { ok: true, answer: a as GeminiAnswer };
+}
+
+/** The funds array of an answer, or an empty list (keeps the checks above simple). */
+function a_funds(a: Partial<GeminiAnswer>): NonNullable<GeminiAnswer["funds"]> {
+  return Array.isArray(a.funds) ? a.funds : [];
 }

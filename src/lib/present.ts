@@ -1,5 +1,4 @@
 /** Turns computed gaps into the plain phrases shown on screen. Pure and tested. */
-import { fmtPoints } from "./format";
 import type { FundComparison } from "./comparison";
 
 /** "Bandhan Nifty 50 Index Fund - Direct Plan - Growth" -> "Bandhan Nifty 50 Index Fund". */
@@ -15,11 +14,12 @@ export function shortName(name: string): string {
 export type GapTone = "good" | "bad" | "flat" | "na";
 export type GapPhrase = { text: string; tone: GapTone };
 
-/** A gap in points as words: "In line", "0.3 points ahead", "1.0 point behind". */
+/** A gap between two returns in everyday words: "About the same", "1.6% better", "0.9% worse". */
 export function gapPhrase(gap: number | null | undefined): GapPhrase {
   if (gap === null || gap === undefined || !Number.isFinite(gap)) return { text: "Not available", tone: "na" };
-  if (Math.abs(gap) < 0.15) return { text: "In line", tone: "flat" };
-  return gap > 0 ? { text: `${fmtPoints(gap)} ahead`, tone: "good" } : { text: `${fmtPoints(gap)} behind`, tone: "bad" };
+  if (Math.abs(gap) < 0.15) return { text: "About the same", tone: "flat" };
+  const n = Math.abs(gap).toFixed(1);
+  return gap > 0 ? { text: `${n}% better`, tone: "good" } : { text: `${n}% worse`, tone: "bad" };
 }
 
 export type ComparisonRow = { key: string; label: string; phrase: GapPhrase; help?: "index" | "similar" };

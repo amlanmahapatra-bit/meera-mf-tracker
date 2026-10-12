@@ -57,11 +57,11 @@ export default function HowItWorks() {
         <div className="themed mt-3 rounded-2xl border border-line bg-card p-5 text-[15px] leading-relaxed text-ink-2 shadow-card">
           <p>We look at how far a fund is behind what it is compared with over the last month.</p>
           <ul className="mt-3 space-y-2">
-            <li><strong className="text-good">On track</strong>: no more than {g} point behind.</li>
-            <li><strong className="text-warn">Worth watching</strong>: between {g} and {a} points behind.</li>
-            <li><strong className="text-bad">Needs a look</strong>: more than {a} points behind.</li>
+            <li><strong className="text-good">On track</strong>: no more than {g} percent worse.</li>
+            <li><strong className="text-warn">Worth watching</strong>: between {g} and {a} percent worse.</li>
+            <li><strong className="text-bad">Needs a look</strong>: more than {a} percent worse.</li>
           </ul>
-          <p className="mt-3">A fund that has trailed for {STATUS_RULES.amberWeeksLagging} weeks in a row is at least &ldquo;worth watching&rdquo;, and for {STATUS_RULES.redWeeksLagging} weeks in a row, &ldquo;needs a look&rdquo;. A green <strong className="text-good">Outperforming</strong> tag appears next to a fund that beat the average of similar funds by at least {PEER_STANDING.aheadMinMonthGap} points over the last month.</p>
+          <p className="mt-3">A fund that has trailed for {STATUS_RULES.amberWeeksLagging} weeks in a row is at least &ldquo;worth watching&rdquo;, and for {STATUS_RULES.redWeeksLagging} weeks in a row, &ldquo;needs a look&rdquo;. A green <strong className="text-good">Outperforming</strong> tag appears next to a fund that beat the average of similar funds by at least {PEER_STANDING.aheadMinMonthGap} percent over the last month.</p>
           <p className="mt-3">The overall message at the top is one of three: &ldquo;{VERDICTS.none}&rdquo; (no fund is flagged), &ldquo;{VERDICTS.watch}&rdquo; (one is), or &ldquo;{VERDICTS.review}&rdquo; (two or more are). The colours always come with an icon and a word.</p>
         </div>
       </section>
@@ -76,7 +76,7 @@ export default function HowItWorks() {
       <section aria-labelledby="words-h">
         <h2 id="words-h" className="text-lg font-bold tracking-tight">Words you may see</h2>
         <dl className="themed mt-3 divide-y divide-line rounded-2xl border border-line bg-card shadow-card">
-          {([["Price (NAV)", GLOSSARY.nav], ["Market index", GLOSSARY.index], ["Similar funds", GLOSSARY.similar], ["Points", GLOSSARY.points], ["Year so far", GLOSSARY.ytd], ["Outperforming", GLOSSARY.outperforming], ["Market or fund?", GLOSSARY.split], ["SIP", GLOSSARY.sip]] as const).map(([w, d]) => (
+          {([["Price (NAV)", GLOSSARY.nav], ["Market index", GLOSSARY.index], ["Similar funds", GLOSSARY.similar], ["Year so far", GLOSSARY.ytd], ["Outperforming", GLOSSARY.outperforming], ["Market or fund?", GLOSSARY.split], ["SIP", GLOSSARY.sip]] as const).map(([w, d]) => (
             <div key={w} className="px-5 py-3 sm:flex sm:gap-6">
               <dt className="font-bold sm:w-44 sm:shrink-0">{w}</dt>
               <dd className="text-[15px] text-ink-2">{d}</dd>

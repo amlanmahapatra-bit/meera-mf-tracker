@@ -1,65 +1,63 @@
 /**
- * Plain-language report written from the numbers alone (no AI).
- * Used when Gemini is down or its answer fails validation, so Meera always gets a readable report.
+ * Plain-language report written from the numbers alone (no AI), in the same very simple style Gemini is asked for:
+ * short sentences, everyday words, few numbers. Used when Gemini is down or its answer fails the checks,
+ * so Meera always gets a readable report.
  */
-import type { FundComparison, WindowValues } from "./comparison";
+import type { FundComparison, Split } from "./comparison";
 import type { FundReport, ReportInput } from "./report-types";
 
 const abs1 = (n: number) => Math.abs(n).toFixed(1);
 
-function move(n: number | null): string {
-  if (n === null) return "could not be measured";
-  if (Math.abs(n) < 0.05) return "was flat";
-  return `${n > 0 ? "rose" : "fell"} ${abs1(n)}%`;
-}
-
-/** "about the same as X", "1.2 points ahead of X" or "0.8 points behind X". */
-export function describeGap(gap: number | null, label: string): string {
-  if (gap === null) return `could not be compared with ${label}`;
-  if (Math.abs(gap) < 0.15) return `is about the same as ${label}`;
-  const p = abs1(gap);
-  return `is ${p} point${p === "1.0" ? "" : "s"} ${gap > 0 ? "ahead of" : "behind"} ${label}`;
+/** "about the same as", "a little better than", "much worse than" (never numbers). Meant to follow "it was" / "it did". */
+export function gapWords(gap: number | null): string | null {
+  if (gap === null) return null;
+  const a = Math.abs(gap);
+  if (a < 0.15) return "about the same as";
+  const dir = gap > 0 ? "better" : "worse";
+  if (a < 1) return `a little ${dir} than`;
+  if (a < 3) return `${dir} than`;
+  return `much ${dir} than`;
 }
 
 function sentence1(f: Omit<FundReport, "sentences">): string {
   const c = f.comparison.fund;
-  const parts = [`${move(c.week)} this week`];
-  if (c.month !== null) parts.push(`${move(c.month)} over the last month`);
-  if (c.ytd !== null) parts.push(`is ${c.ytd >= 0 ? "up" : "down"} ${abs1(c.ytd)}% since January`);
-  const joined = parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
-  return `Your ${f.slot} fund ${joined}.`;
+  const week = c.week === null ? "could not be measured this week" : Math.abs(c.week) < 0.05 ? "stayed flat this week" : `${c.week > 0 ? "went up" : "fell"} ${abs1(c.week)}% this week`;
+  const ytd = c.ytd === null ? "" : `, and is ${c.ytd >= 0 ? "up" : "down"} ${abs1(c.ytd)}% since January`;
+  return `Your ${f.slot} fund ${week}${ytd}.`;
 }
 
 function sentence2(f: Omit<FundReport, "sentences">): string {
   const c: FundComparison = f.comparison;
+  const simWords = gapWords(c.gapVsCategory.month);
+  const similar = simWords && c.peersUsed > 0 ? `${simWords} ${c.peersUsed === 1 ? "a similar fund" : `the ${c.peersUsed} similar funds`}` : null;
   if (c.reference === "benchmark" && c.gapVsBenchmark) {
-    const catPart = c.category.month !== null ? ` and ${describeGap(c.gapVsCategory.month, `the average of ${c.peersUsed} similar fund${c.peersUsed === 1 ? "" : "s"}`)}` : "";
-    return `Over the last month it ${describeGap(c.gapVsBenchmark.month, f.referenceLabel)}${catPart}.`;
+    const idxWords = gapWords(c.gapVsBenchmark.month);
+    if (idxWords) {
+      const tail = similar ? `, and ${similar}` : "";
+      return `Over the last month it did ${idxWords} ${f.referenceLabel}${tail}.`;
+    }
   }
-  if (c.reference === "category") {
-    const why = c.benchmarkMissing ? `${c.benchmarkName ?? "its index"} data was not available this time, so` : "There is no free market index for this kind of fund, so";
-    return `${why} it is compared with similar funds only: over the last month it ${describeGap(c.gapVsCategory.month, `the average of ${c.peersUsed} similar fund${c.peersUsed === 1 ? "" : "s"}`)}.`;
+  if (similar) {
+    const why = c.benchmarkMissing ? "The market score was not available this time, so" : "There is no market score for this kind of fund, so";
+    return `${why} we compared it with similar funds: over the last month it did ${similar}.`;
   }
-  return "There was not enough data to compare it with anything this week.";
+  return "There was not enough information to compare it with anything this week.";
 }
 
-function sentence3(f: Omit<FundReport, "sentences">, input: ReportInput): string {
+function splitWords(split: Split): string {
+  const m = Math.abs(split.marketPart);
+  const f = Math.abs(split.fundPart);
+  if (f < 0.05) return "Almost all of the move came from the market itself";
+  if (m < 0.05) return "Almost all of the move came from the fund itself";
+  return m >= f ? "Most of the move came from the whole market, and the rest from the fund itself" : "Most of the move came from the fund itself, and the rest from the whole market";
+}
+
+function sentence3(f: Omit<FundReport, "sentences">): string {
   const split = f.comparison.split;
-  const head = input.marketContext.news.headlines[0];
-  const word = split && split.total >= 0 ? "gain" : "drop";
-  const splitText = !split
-    ? ""
-    : Math.abs(split.fundPart) < 0.05
-      ? `Essentially all of this week's ${word} of ${abs1(split.total)}% came from the market as a whole, not from the fund itself. `
-      : `Of this week's ${word} of ${abs1(split.total)}%, ${abs1(split.marketPart)}% was the whole market and ${abs1(split.fundPart)}% was ${split.fundPart >= 0 ? "extra from" : "down to"} this fund. `;
-  const news = head
-    ? `One headline this week: "${head.title}" (${head.source}), though I can't say it explains this fund's move.`
-    : "I don't know of a news event that explains this move.";
-  return splitText + news;
+  return split ? `${splitWords(split)}, and I do not know of any news that explains it.` : "It is hard to link this week's move to one news story, so I do not know what caused it.";
 }
 
-export function templateSentences(f: Omit<FundReport, "sentences">, input: ReportInput): [string, string, string] {
-  return [sentence1(f), sentence2(f), sentence3(f, input)];
+export function templateSentences(f: Omit<FundReport, "sentences">, _input: ReportInput): [string, string, string] {
+  void _input;
+  return [sentence1(f), sentence2(f), sentence3(f)];
 }
-
-export type { WindowValues };

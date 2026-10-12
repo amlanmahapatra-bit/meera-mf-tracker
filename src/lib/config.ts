@@ -49,18 +49,26 @@ export type BenchmarkConfig = {
   /** Currency the index is quoted in. USD indexes are converted to INR before comparing with an Indian fund. */
   currency: "INR" | "USD";
   /**
-   * Days the index date lags the Indian NAV date. A NAV dated 9 Oct for a US-market fund reflects
-   * the US close of 8 Oct, so its index comparison is shifted back one day.
+   * Days the index date lags the Indian NAV date (0 = the NAV dated D is matched with the index close of day D).
+   * Tested against four years of the Axis Nasdaq fund's real prices: same-day matching fits best (month error
+   * 1.33% vs 1.43% with a one-day lag), so it is 0.
    */
   lagDays: number;
+  /**
+   * How closely this fund can be expected to follow its index, in percentage points. Some funds (the US fund) price their
+   * holdings at a different time of day than the index's official close, which leaves about 1.3% of monthly noise
+   * that is not real performance. The status rules widen their thresholds by this much so Meera is only flagged for
+   * real, sustained gaps. 0 for funds that copy an Indian index closely.
+   */
+  trackingAllowance: number;
 };
 
 /** Keyed by the benchmark_name stored in the funds table. */
 export const BENCHMARKS: Record<string, BenchmarkConfig> = {
-  "Nifty 50": { symbol: "^NSEI", currency: "INR", lagDays: 0 },
-  "Nifty Midcap 150": { symbol: "NIFTYMIDCAP150.NS", currency: "INR", lagDays: 0 },
-  "Nifty Smallcap 250": { symbol: "NIFTYSMLCAP250.NS", currency: "INR", lagDays: 0 },
-  "Nasdaq 100": { symbol: "^NDX", currency: "USD", lagDays: 1 },
+  "Nifty 50": { symbol: "^NSEI", currency: "INR", lagDays: 0, trackingAllowance: 0 },
+  "Nifty Midcap 150": { symbol: "NIFTYMIDCAP150.NS", currency: "INR", lagDays: 0, trackingAllowance: 0 },
+  "Nifty Smallcap 250": { symbol: "NIFTYSMLCAP250.NS", currency: "INR", lagDays: 0, trackingAllowance: 0 },
+  "Nasdaq 100": { symbol: "^NDX", currency: "USD", lagDays: 0, trackingAllowance: 1.5 },
 };
 export const USDINR_SYMBOL = "INR=X";
 

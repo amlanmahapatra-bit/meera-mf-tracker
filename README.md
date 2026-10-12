@@ -5,7 +5,7 @@ It fetches live prices, works out how each fund did, compares it with the market
 and has **Gemini Flash** explain the result in everyday words. Built for the MESA Cohort C4 "AI and its
 Applications" exam (Problem Statement 19).
 
-> **Status:** backend and website built and tested; the Vercel deployment is the remaining item. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
+> **Status:** backend, website, the Saturday email and five years of history are built and tested. Remaining: switching the email on (needs Resend details) and the Vercel deployment. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
 >
 > **Live site:** _to be added after deployment_
 
@@ -15,7 +15,8 @@ Applications" exam (Problem Statement 19).
 2. **Every Saturday morning** another job works out each fund's **week, month and year-so-far** return, then compares it with its **market index** and with the **average of similar funds**. It splits the week's move into "how much was the whole market, how much was this fund".
 3. Simple, documented rules turn those gaps into a **green / amber / red** light for each fund and an overall verdict ("No action needed", "One fund worth watching" or "Consider reviewing your allocation").
 4. That week's market headlines (GNews, or Google News as a backup) and all the computed numbers go to **Gemini Flash** (a Google model, reached through the OpenRouter gateway) in one call. It writes three plain sentences per fund. **It never calculates anything**; its answer is checked and rejected if it invents a number, uses jargon, gives advice or quotes a headline we did not give it. If Gemini is unavailable, a built-in template writes the text from the same numbers.
-5. Everything is stored in **Supabase** so weeks can be compared over time.
+5. Everything is stored in **Supabase** so weeks can be compared over time. The past five years of weekly results are replayed from the real price history, so the trend chart is full from day one.
+6. Right after the check-up is saved, it is **emailed** (via Resend) to Meera. This happens once per week, never twice.
 
 Details and diagram: [`docs/COMPONENTS_MAP.md`](docs/COMPONENTS_MAP.md). Design decisions and their weaknesses: [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
 
@@ -31,7 +32,7 @@ npm test                        # unit tests
 npm run dev                     # http://localhost:3000
 ```
 
-Create the tables in the Supabase SQL editor: run `sql/000_schema_reference.sql` (funds, nav_history, index_history, weekly_snapshots, weekly_reports; skip if your project already has them) and then `sql/001_pipeline_runs.sql`. Seed the `funds` table with your funds (or add them later from the form/API).
+Create the tables in the Supabase SQL editor: run `sql/000_schema_reference.sql` (funds, nav_history, index_history, weekly_snapshots, weekly_reports; skip if your project already has them), then `sql/001_pipeline_runs.sql` and `sql/002_email_log.sql` (the log that stops a week being emailed twice). Seed the `funds` table with your funds (or add them later from the form/API).
 
 ### Environment variables
 
@@ -42,7 +43,8 @@ Create the tables in the Supabase SQL editor: run `sql/000_schema_reference.sql`
 | `OPENROUTER_API_KEY` | Gives access to Gemini Flash (the only AI used) through OpenRouter. Optional `AI_MODELS="google/a,google/b"` overrides the model order; every id must start with `google/` |
 | `GNEWS_API_KEY` | GNews. Optional: without it the Google News RSS backup is used |
 | `CRON_SECRET` | Protects `/api/cron/*` (Vercel sends it as a Bearer token) |
-| `ADMIN_PASSCODE` | Needed to add/remove funds and to use "Run now" (header `x-admin-passcode`) |
+| `ADMIN_PASSCODE` | Needed to add/remove funds and to use the admin buttons (header `x-admin-passcode`) |
+| `RESEND_API_KEY`, `REPORT_EMAIL_TO`, `RESEND_FROM`, `SITE_URL` | Saturday email (all optional: until the key and an address are set, the email step is skipped). `REPORT_EMAIL_TO` can hold several addresses separated by commas. `RESEND_FROM` defaults to `onboarding@resend.dev`, which Resend only lets you use to email **your own Resend account address**; to email anyone else, verify a domain at resend.com/domains and use it here. `SITE_URL` is the public address used for the "Open the full check-up" button |
 
 Secrets live only in environment variables; `.env.local` is git-ignored.
 
@@ -52,15 +54,18 @@ Secrets live only in environment variables; `.env.local` is git-ignored.
 |---|---|
 | `npm run verify` | Real requests to every data source, Supabase and Gemini |
 | `npm run demo:returns` / `npm run demo:comparison` | Show the returns and comparison maths on live data |
-| `npm run pipeline -- daily \| weekly \| both` | Run the real jobs from your terminal |
-| `npm test` | 105 unit tests |
+| `npm run pipeline -- daily \| weekly [--email] \| backfill [--years=5] \| both` | Run the real jobs from your terminal (email is only sent with `--email`) |
+| `npm run email:preview` | Builds the Saturday email from the latest report into `docs/email-preview.html` |
+| `npm test` | 210 unit tests |
 
 ### API (all server-side)
 
 | Route | Who | Does |
 |---|---|---|
 | `GET /api/cron/daily`, `GET /api/cron/weekly` | Vercel Cron, `Authorization: Bearer CRON_SECRET` | The scheduled jobs (daily 07:00 IST, Saturday 07:30 IST; see `vercel.json`) |
-| `POST /api/admin/run` | Passcode | "Run now": save prices, build the report |
+| `POST /api/admin/run` | Passcode | "Update now": save prices, build the report (never sends the email) |
+| `POST /api/admin/backfill?years=5` | Passcode | Fill in past weekly history for the trend chart (safe to repeat) |
+| `GET /api/admin/email-status`, `POST /api/admin/send-test-email` | Passcode | Is the email ready (masked addresses) / send a clearly marked test email |
 | `GET /api/funds` | Public | Funds being tracked |
 | `GET /api/funds/search?q=` / `GET /api/funds/preview?code=` | Passcode | Search by name (Direct Growth only) / look up a code and suggest slot + index |
 | `POST /api/funds`, `DELETE /api/funds` | Passcode | Add a fund (validates, backfills prices, finds similar funds) / remove (switches off, keeps history) |
@@ -76,9 +81,9 @@ Secrets live only in environment variables; `.env.local` is git-ignored.
 | 4 | **Every Saturday**: Nifty 50, Midcap 150, **Smallcap 100** moves + macro events via a news API | Saturday job: index moves + GNews (RSS fallback). Smallcap 100: see limitation 1 | `src/lib/pipeline/weekly.ts`, `src/lib/sources/news.ts` | ✅ (Smallcap 100 ➖) |
 | 5 | Gemini writes the plain-language report, three sentences per fund | Gemini Flash (`google/gemini-3.7-flash` via OpenRouter), structured JSON, validated, retried once, template fallback | `src/lib/gemini.ts`, `gemini-validate.ts`, `report-writer.ts`, `report-template.ts` | ✅ verified live |
 | 6 | Overall assessment with the three exact strings and a specific reason | Computed in code, finalised by Gemini, enforced by a database CHECK | `src/lib/status.ts`, `src/lib/config.ts`, table `weekly_reports` | ✅ |
-| 7 | All weekly snapshots in Supabase for **multi-week trend tracking** | `weekly_snapshots`, one row per fund per week | `src/lib/db.ts`, `src/lib/pipeline/weekly.ts` | ✅ stored · trend chart ⏳ |
-| 8 | Add/remove a fund by **scheme code** in a Vercel form, no code changes | API done (also search by name); web form to come | `src/app/api/funds/*`, `src/lib/funds-service.ts` | 🟡 API ✅ · form ⏳ |
-| 9 | Delivered **every Saturday morning** | Vercel Cron, `0 2 * * 6` UTC = 07:30 IST | `vercel.json` | ✅ configured · live ⏳ |
+| 7 | All weekly snapshots in Supabase for **multi-week trend tracking** | `weekly_snapshots`, one row per fund per week; five years replayed from real prices | `src/lib/db.ts`, `src/lib/pipeline/weekly.ts`, `src/lib/pipeline/backfill.ts`, `src/components/TrendSection.tsx` | ✅ |
+| 8 | Add/remove a fund by **scheme code** in a Vercel form, no code changes | Form at `/manage` (also search by name) | `src/components/ManagePanel.tsx`, `src/app/api/funds/*`, `src/lib/funds-service.ts` | ✅ |
+| 9 | Delivered **every Saturday morning** | Vercel Cron, `0 2 * * 6` UTC = 07:30 IST builds the report and then emails it via Resend (once per week, duplicate-proof) | `vercel.json`, `src/lib/pipeline/email.ts`, `src/lib/email.ts`, `src/lib/sources/resend.ts`, `sql/002_email_log.sql` | ✅ built and tested · switches on when Resend details are added · live ⏳ |
 | 10 | Submit working Vercel URL + GitHub repo + **Components Map** | Repo ✅; map ✅; URL ⏳ | `docs/COMPONENTS_MAP.md` | 🟡 |
 | 11 | All AI uses **Gemini Flash**, never the Claude API | Only `google/` models are accepted (the code refuses to start otherwise), pinned to Google's own servers through OpenRouter; no AI SDK installed | `src/lib/gemini.ts` | ✅ |
 | 12 | **Live external data**; works with some data at submission | Live APIs; the first run has been done manually and a real report is stored | `src/lib/pipeline/*`, `/api/admin/run` | ✅ locally · on Vercel ⏳ |
@@ -88,12 +93,14 @@ Secrets live only in environment variables; `.env.local` is git-ignored.
 1. **Nifty Smallcap 100 is not available.** The brief asks for it as market context, but no free source provides its history (Yahoo returns a single price; niftyindices.com returns a web page to servers). The small-cap fund tracks the **Nifty Smallcap 250**, which is used instead, and the site says so.
 2. **The debt fund has no free benchmark.** HDFC Short Term Fund is compared with the average of similar debt funds only, and the site says so. (The originally planned HSBC fund's prices stopped in 2022, so it was replaced.)
 3. **"Category average" is our own method**: the average of similar Direct Growth funds from other fund houses (e.g. "average of 9 similar funds"), not an official category figure. Large Cap has only 2 peers.
-4. **Index levels are price indexes; fund prices include reinvested dividends.** Over longer windows (year to date) a fund can therefore look slightly ahead of its index (about 0.7 points for the Nifty 50 fund) without really outperforming. Week and month comparisons are barely affected.
-5. **Index data is from Yahoo Finance's unofficial endpoint.** If it is down we show saved closes with their date. The US-market fund is converted to rupees; a small week-level difference remains because the fund uses its own exchange-rate timing.
-6. **The AI step depends on an OpenRouter account with credit.** A report costs about 1 US cent (`google/gemini-3.7-flash`). If the service is busy the call is retried (3 times, with backoff) and then the next Flash model is tried; if credits run out or Gemini is unreachable, a built-in template writes the text from the same numbers and the report says so. (Calling Google's free tier directly was abandoned: it allows only 20 requests a day per model.)
-7. **Prices are for the previous trading day** (that is how NAVs are published); there are no weekend NAVs.
-8. **Vercel Hobby plan:** two daily-or-slower cron jobs; the timing is approximate.
-9. This is information, not investment advice.
+4. **The US-market fund does not copy the Nasdaq's closing price exactly.** Tested against four years of its real prices: even the best date match leaves about 1.3% of monthly noise (the fund prices its US holdings at a different time of day than the official close), so its "compared with the market" figure is a little blurry. Its traffic light therefore has a documented 1.5-percentage-point tolerance (`trackingAllowance` in `src/lib/config.ts`) so only real, sustained gaps are flagged.
+5. **Index levels are price indexes; fund prices include reinvested dividends.** Over longer windows (year to date) a fund can therefore look slightly ahead of its index (about 0.7 points for the Nifty 50 fund) without really outperforming. Week and month comparisons are barely affected.
+6. **Index data is from Yahoo Finance's unofficial endpoint.** If it is down we show saved closes with their date. The US-market fund is converted to rupees; a small week-level difference remains because the fund uses its own exchange-rate timing.
+7. **The AI step depends on an OpenRouter account with credit.** A report costs about 1 US cent (`google/gemini-3.7-flash`). If the service is busy the call is retried (3 times, with backoff) and then the next Flash model is tried; if credits run out or Gemini is unreachable, a built-in template writes the text from the same numbers and the report says so. (Calling Google's free tier directly was abandoned: it allows only 20 requests a day per model.)
+8. **Prices are for the previous trading day** (that is how NAVs are published); there are no weekend NAVs.
+9. **Vercel Hobby plan:** two daily-or-slower cron jobs; the timing is approximate (it may run within the hour, not on the minute).
+10. **Email:** free Resend only delivers to your own Resend address until you verify a domain. Past weeks in the trend chart are replayed from price history (they have no written summary, only numbers).
+11. This is information, not investment advice.
 
 ## Project layout
 
@@ -105,6 +112,9 @@ src/lib/sources/            mfapi, Yahoo indices, GNews + RSS
 src/lib/pipeline/           loaders, daily job, weekly job, run logger
 src/lib/gemini*.ts          Gemini calls + answer checker;  report-*.ts  writer + template
 src/lib/funds*.ts           add / remove / search funds
+src/lib/periods.ts          1 day ... 5 years and since-start returns
+src/lib/email.ts            the Saturday email (HTML + text);  src/lib/pipeline/email.ts  sending + never-twice log
+src/lib/snapshots.ts        weekly snapshot rows + replay of past weeks;  src/lib/pipeline/backfill.ts
 src/app/api/                cron, admin, funds and health routes
 scripts/                    verify, demos, pipeline runner
 sql/                        migrations to run in Supabase

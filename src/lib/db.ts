@@ -80,7 +80,8 @@ export type SnapshotRow = {
   bench_ret_1w: number | null; bench_ret_1m: number | null; bench_ret_ytd: number | null;
   cat_avg_1w: number | null; cat_avg_1m: number | null; cat_avg_ytd: number | null;
   market_part_1w: number | null; fund_part_1w: number | null;
-  status: string; weeks_lagging: number; summary: string | null;
+  /** green / amber / red, or null when there was not enough data to say (the database only allows those three). */
+  status: string | null; weeks_lagging: number; summary: string | null;
 };
 
 export const upsertSnapshots = (rows: SnapshotRow[]) => upsertChunks("weekly_snapshots", "week_ending,scheme_code", rows as unknown as Json[]);
@@ -165,4 +166,11 @@ export async function setFundActive(code: number, active: boolean): Promise<void
 export async function deleteFund(code: number): Promise<void> {
   const { error } = await getSupabase().from("funds").delete().eq("scheme_code", code);
   if (error) console.error("Could not undo the fund row:", error.message);
+}
+
+/** The first week that has a real, written Saturday report (rows with a summary). Backfilled history never goes past it. */
+export async function firstLiveSnapshotWeek(): Promise<string | null> {
+  const { data, error } = await getSupabase().from("weekly_snapshots").select("week_ending").not("summary", "is", null).order("week_ending", { ascending: true }).limit(1);
+  if (error) throw new Error(`Database error while reading snapshots: ${error.message}`);
+  return ((data ?? [])[0] as { week_ending: string } | undefined)?.week_ending ?? null;
 }

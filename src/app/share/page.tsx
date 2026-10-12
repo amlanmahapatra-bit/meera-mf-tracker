@@ -8,7 +8,7 @@ import { slotRank } from "@/lib/funds";
 import { getLatestReport } from "@/lib/queries";
 import { buildShareCsv, buildShareText, csvDataUri, mailtoLink, shareSubject, whatsappLink } from "@/lib/share";
 
-export const metadata: Metadata = { title: "Send to my CA" };
+export const metadata: Metadata = { title: "Share with my CA" };
 
 const btnPrimary = "inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-bold text-accent-ink hover:opacity-90";
 const btnSecondary = "inline-flex items-center justify-center rounded-xl border border-line-strong bg-card px-5 py-3 text-sm font-semibold text-ink hover:bg-card-2";
@@ -32,9 +32,9 @@ async function Share() {
   return (
     <div className="space-y-8">
       <header className="no-print">
-        <h1 className="text-3xl font-extrabold tracking-tight">Send your funds to your CA</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight">Share your funds with your CA</h1>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-2">
-          Your CA usually asks for each fund&apos;s price (NAV). Everything is below, ready to go. Nothing is sent until <em>you</em> pick your CA in WhatsApp or your email app.
+          This is completely optional. If your CA asks for each fund&apos;s price (NAV), everything is below, ready to go. Nothing is sent until <em>you</em> pick who gets it in WhatsApp or your email app.
         </p>
       </header>
 

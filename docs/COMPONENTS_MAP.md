@@ -24,10 +24,14 @@ flowchart TB
     STATUS["Status + verdict rules<br/>green / amber / red"]
     WRITER["Report writer<br/>validate, retry once, template fallback"]
     API["Fund API<br/>search, add, remove (passcode)"]
-    PAGES["Website<br/>dashboard, form, How it works"]
+    PAGES["Website<br/>dashboard, fund pages, form, How it works"]
+    EMAIL["Saturday email step<br/>once per week, never twice"]
+    BACKFILL["History backfill<br/>replays 5 years of weeks"]
   end
 
   GEM["Gemini Flash (google/ models)<br/>via OpenRouter, pinned to Google<br/>(the only AI)"]
+  RS["Resend<br/>email delivery"]
+  MAIL(("Meera's inbox"))
   DB[("Supabase Postgres<br/>funds, nav_history, index_history,<br/>weekly_snapshots, weekly_reports,<br/>pipeline_runs")]
   USER(("Meera"))
 
@@ -47,6 +51,10 @@ flowchart TB
   WRITER -->|"snapshots + report"| DB
   CRON1 -. "logs every run" .-> DB
   CRON2 -. "logs every run" .-> DB
+  WRITER --> EMAIL --> RS --> MAIL
+  EMAIL -. "week claimed in email_log" .-> DB
+  BACKFILL -->|"past weeks"| DB
+  LOAD --> BACKFILL
   DB --> PAGES --> USER
   USER -->|"add / remove fund"| API --> DB
   API -->|"validate + backfill"| MF
@@ -68,6 +76,9 @@ Failure behaviour is the important column: the site must never show a blank page
 | **Comparison** `src/lib/comparison.ts` | Gap vs index and vs similar funds on the fund's own dates; USD→INR + one-day lag for the Nasdaq fund; "market vs fund" split | Fund + index + peers | Gaps, split | Missing index → category only; failed peers skipped and counted ("average of N funds") |
 | **Status + verdict** `src/lib/status.ts`, `src/lib/config.ts` | Green/amber/red per fund (month gap + weeks behind in a row); overall verdict (exact 3 strings) | Gaps, last snapshot | Status, verdict, specific reason | Unknown data shows "unknown", not green |
 | **Report writer** `src/lib/gemini*.ts`, `report-*.ts` | One structured Gemini call through OpenRouter (Google models only, provider pinned to Google); check the answer; one retry; template fallback | Computed facts only | Three sentences per fund, verdict reason | Busy (429/5xx) → 3 retries with backoff, then the next Flash model; out of credits (402) or unreachable → template; invalid answer → one retry then template. The report always exists and records which writer was used and the cost. |
+| **Email step** `src/lib/pipeline/email.ts`, `src/lib/email.ts`, `src/lib/sources/resend.ts` | Builds the Saturday email (HTML + text, all text escaped) and sends it through Resend right after the report is saved | The saved report, `RESEND_API_KEY`, `REPORT_EMAIL_TO` | One email per week; a row in `email_log` | Not set up → skipped with a reason; week already sent or being sent → skipped (unique index + Resend idempotency key); log unreadable → nothing sent; Resend error → plain-language reason, recorded, report unaffected, retry allowed |
+| **History backfill** `src/lib/pipeline/backfill.ts`, `src/lib/snapshots.ts` | Replays past Saturdays from stored price histories with the same maths as a live week | Fund, similar-fund and index histories | Weekly snapshot rows (numbers only) for up to 5 years | Only writes weeks before the first real report; safe to repeat; a missing index means that fund is compared with similar funds only |
+| **Period returns** `src/lib/periods.ts` | 1 day, 1 week, 1 month, 6 months, 1 year, 3 years, 5 years and since the fund started, plus the average per year | A fund's full price history | Percentages with the start date used | A fund too young for a period shows "not enough history", never a guess |
 | **Pipeline jobs** `src/lib/pipeline/*` | Daily prices job, weekly report job, "run now" | Active funds | Rows in the database; a log line in `pipeline_runs` | Every run logged with status `success` / `partial` / `failed` and error; double-click guard; all writes are upserts (safe to repeat) |
 | **Cron routes** `src/app/api/cron/*` | Entry points for Vercel Cron | `Authorization: Bearer CRON_SECRET` | Job result JSON | Wrong or missing secret → 401, nothing runs |
 | **Fund API** `src/app/api/funds/*`, `src/lib/funds-service.ts` | Search (Direct Growth only), preview, add (validate, backfill, find peers), remove (switch off) | Name or scheme code, `ADMIN_PASSCODE` | Fund list changes | Plain-language errors; a half-finished add is rolled back; remove keeps history |
