@@ -25,7 +25,7 @@ async function main() {
     if (fd.bench) {
       const cfg = BENCHMARKS[fd.bench];
       let s = await fetchIndexSeries(cfg.symbol);
-      if (cfg.currency === "USD") s = convertToInr(s, fx);
+      if (cfg.currency === "USD") s = convertToInr(s, fx, cfg.lagDays);
       br = matchedReturns(s, fr, cfg.lagDays);
     }
     const peerSeries = await Promise.all(fd.peers.map((p) => fetchScheme(p).then((x) => x.series).catch(() => null as Point[] | null)));
@@ -43,7 +43,7 @@ async function main() {
   // Why we convert to rupees and shift by a day for the Nasdaq fund: try the options on real data.
   const axis = computeReturns((await fetchScheme(150751)).series)!;
   const ndx = await fetchIndexSeries("^NDX");
-  const ndxInr = convertToInr(ndx, fx);
+  const ndxInr = convertToInr(ndx, fx, 1);
   console.log("Nasdaq fund check (fund's own 1-week return vs the index, 3 ways):");
   console.log(`  fund:                                  ${f(axis.week!.pct)}%`);
   console.log(`  index in dollars, no lag (wrong):      ${f(matchedReturns(ndx, axis, 0)!.week!.pct)}%`);

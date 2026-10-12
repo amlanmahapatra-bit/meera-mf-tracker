@@ -32,12 +32,18 @@ function gap(a: WindowValues, b: WindowValues): WindowValues {
   return out;
 }
 
-/** An index quoted in dollars becomes rupees: close(USD) x USDINR on (or just before) the same day. */
-export function convertToInr(index: Point[], usdInr: Point[], maxFxStaleDays = 7): Point[] {
+/**
+ * An index quoted in dollars becomes rupees: close(USD) x USDINR.
+ * `fxLeadDays` picks the rate from that many days AFTER the index date. A US-market fund's NAV dated
+ * 9 Oct (India) reflects the US close of 8 Oct but is converted at the 9 Oct rupee rate, so
+ * for a one-day lag we pair each US close with the next day's rate (verified against real NAVs).
+ */
+export function convertToInr(index: Point[], usdInr: Point[], fxLeadDays = 0, maxFxStaleDays = 7): Point[] {
   const out: Point[] = [];
   for (const p of index) {
-    const fx = onOrBefore(usdInr, p.date);
-    if (!fx || daysBetween(fx.date, p.date) > maxFxStaleDays) continue;
+    const target = addDays(p.date, fxLeadDays);
+    const fx = onOrBefore(usdInr, target);
+    if (!fx || daysBetween(fx.date, target) > maxFxStaleDays) continue;
     out.push({ date: p.date, value: p.value * fx.value });
   }
   return out;

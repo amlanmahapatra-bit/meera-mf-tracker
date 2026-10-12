@@ -78,6 +78,12 @@ describe("convertToInr", () => {
     const fx: Point[] = [{ date: "2026-10-07", value: 80 }, { date: "2026-10-09", value: 90 }];
     expect(convertToInr(idx, fx)).toEqual([{ date: "2026-10-08", value: 8000 }, { date: "2026-10-09", value: 9900 }]);
   });
+  it("can pair each index close with the next day's rate (lead days)", () => {
+    const idx: Point[] = [{ date: "2026-10-08", value: 100 }];
+    const fx: Point[] = [{ date: "2026-10-08", value: 80 }, { date: "2026-10-09", value: 90 }];
+    expect(convertToInr(idx, fx, 1)).toEqual([{ date: "2026-10-08", value: 9000 }]);
+    expect(convertToInr(idx, fx, 0)).toEqual([{ date: "2026-10-08", value: 8000 }]);
+  });
   it("skips days with no usable rate", () => {
     const idx: Point[] = [{ date: "2026-10-09", value: 100 }];
     expect(convertToInr(idx, [])).toEqual([]);

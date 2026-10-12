@@ -3,7 +3,7 @@ import { cleanSeries, type Point } from "../returns";
 
 type YahooChart = {
   chart?: {
-    result?: { timestamp?: number[]; indicators: { quote: { close: (number | null)[] }[] } }[];
+    result?: { meta?: { gmtoffset?: number }; timestamp?: number[]; indicators: { quote: { close: (number | null)[] }[] } }[];
     error?: { description?: string } | null;
   };
 };
@@ -19,8 +19,11 @@ export async function fetchIndexSeries(symbol: string, range = "2y"): Promise<Po
   const r = j.chart?.result?.[0];
   if (!r?.timestamp) throw new Error(`No data for ${symbol}: ${j.chart?.error?.description ?? "empty response"}`);
   const closes = r.indicators.quote[0].close;
+  // Label each day in the market's own time zone. (Currency rows are stamped 23:00 UTC the evening
+  // before, which is midnight London time; reading them in UTC would date every row one day early.)
+  const offset = r.meta?.gmtoffset ?? 0;
   const series = cleanSeries(
-    r.timestamp.map((t, i) => ({ date: new Date(t * 1000).toISOString().slice(0, 10), value: closes[i] ?? NaN })),
+    r.timestamp.map((t, i) => ({ date: new Date((t + offset) * 1000).toISOString().slice(0, 10), value: closes[i] ?? NaN })),
   );
   if (series.length < 20) throw new Error(`Too little history for ${symbol} (${series.length} closes)`);
   return series;

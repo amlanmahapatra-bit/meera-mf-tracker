@@ -17,6 +17,9 @@ const QUERIES = [
   "global markets OR US Federal Reserve OR crude oil OR Nasdaq OR dollar rupee",
 ];
 
+/** Keeps market and economy headlines; drops unrelated stories that a broad search can pull in. */
+const RELEVANT = /market|sensex|nifty|stock|share|equit|rbi|reserve bank|inflation|cpi|fed\b|federal reserve|interest rate|repo|crude|oil\b|fii|fpi|rupee|dollar|gdp|economy|economic|earnings|bond|yield|nasdaq|wall street|dow\b|tariff|trade|budget|mutual fund|sebi|gold|currency|ipo|investor/i;
+
 const normTitle = (t: string) => t.toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim();
 
 function dedupeAndTrim(items: Headline[]): Headline[] {
@@ -26,6 +29,7 @@ function dedupeAndTrim(items: Headline[]): Headline[] {
   const sorted = [...items].sort((a, b) => (b.publishedAt ?? "").localeCompare(a.publishedAt ?? ""));
   for (const h of sorted) {
     if (h.publishedAt && Date.parse(h.publishedAt) < cutoff) continue;
+    if (!RELEVANT.test(h.title)) continue;
     const key = normTitle(h.title).slice(0, 80);
     if (!key || seen.has(key)) continue;
     seen.add(key);
