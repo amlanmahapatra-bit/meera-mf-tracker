@@ -143,3 +143,26 @@ export async function recentStatuses(code: number, beforeWeek: string, n = 4): P
   if (error) return [];
   return ((data ?? []) as { week_ending: string; status: string }[]).map((r) => ({ weekEnding: r.week_ending, status: r.status }));
 }
+
+// ---------- fund management ----------
+export async function getFund(code: number): Promise<FundRow | null> {
+  const { data, error } = await getSupabase().from("funds").select("*").eq("scheme_code", code).maybeSingle();
+  if (error) throw new Error(`Database error while reading the fund: ${error.message}`);
+  return (data as FundRow | null) ?? null;
+}
+
+export async function saveFund(row: Omit<FundRow, "added_at">): Promise<void> {
+  const { error } = await getSupabase().from("funds").upsert(row, { onConflict: "scheme_code" });
+  if (error) throw new Error(`Database error while saving the fund: ${error.message}`);
+}
+
+export async function setFundActive(code: number, active: boolean): Promise<void> {
+  const { error } = await getSupabase().from("funds").update({ active }).eq("scheme_code", code);
+  if (error) throw new Error(`Database error while updating the fund: ${error.message}`);
+}
+
+/** Only used to undo a half-finished "add fund" (the fund row was created moments ago and has no history worth keeping). */
+export async function deleteFund(code: number): Promise<void> {
+  const { error } = await getSupabase().from("funds").delete().eq("scheme_code", code);
+  if (error) console.error("Could not undo the fund row:", error.message);
+}

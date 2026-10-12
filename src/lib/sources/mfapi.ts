@@ -45,3 +45,13 @@ export async function searchFunds(query: string): Promise<SearchHit[]> {
   const rows = await getJson<SearchHit[]>(`${BASE}/search?q=${encodeURIComponent(q)}`);
   return rows.filter((r) => isDirectGrowth(r.schemeName));
 }
+
+let allSchemesCache: { at: number; rows: SearchHit[] } | null = null;
+
+/** Every scheme mfapi knows (about 38,000, ~2 MB). Cached for an hour because it changes rarely. */
+export async function fetchAllSchemes(): Promise<SearchHit[]> {
+  if (allSchemesCache && Date.now() - allSchemesCache.at < 3_600_000) return allSchemesCache.rows;
+  const rows = await getJson<SearchHit[]>(BASE, { timeoutMs: 30_000 });
+  allSchemesCache = { at: Date.now(), rows };
+  return rows;
+}
