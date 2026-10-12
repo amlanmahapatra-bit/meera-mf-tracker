@@ -5,6 +5,7 @@
  *  - a failure is recorded and reported but never breaks the saved report.
  */
 import { buildEmail } from "../email";
+import { buildReportPdf } from "../report-pdf";
 import { getSupabase } from "../supabase";
 import type { ReportJson } from "../report-types";
 import { EmailError, sendViaResend } from "../sources/resend";
@@ -21,6 +22,15 @@ export function readEmailConfig(env: Record<string, string | undefined> = proces
   const bad = to.filter((a) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
   if (bad.length) return { missing: `These do not look like email addresses: ${bad.join(", ")}.` };
   return { config: { apiKey, to, from: env.RESEND_FROM?.trim() || "Trackerr <onboarding@resend.dev>", siteUrl: env.SITE_URL?.trim() || undefined } };
+}
+
+/** The report as a PDF attachment. If the PDF cannot be made, the email still goes out without it. */
+async function pdfAttachment(report: ReportJson): Promise<NonNullable<Parameters<typeof sendViaResend>[0]["attachments"]>> {
+  try {
+    return [{ filename: `Trackerr-weekly-report-${report.weekEnding}.pdf`, content: await buildReportPdf(report) }];
+  } catch {
+    return [];
+  }
 }
 
 export const maskEmail = (a: string): string => a.replace(/^(.).*(@.*)$/, "$1***$2");
@@ -49,7 +59,7 @@ export async function sendWeeklyEmail(report: ReportJson, deps: EmailDeps = real
 
   const mail = buildEmail(report, { siteUrl: config.siteUrl });
   try {
-    const { id } = await deps.send({ apiKey: config.apiKey, from: config.from, to: config.to, subject: mail.subject, html: mail.html, text: mail.text, idempotencyKey: `weekly-report-${report.weekEnding}` });
+    const { id } = await deps.send({ apiKey: config.apiKey, from: config.from, to: config.to, subject: mail.subject, html: mail.html, text: mail.text, attachments: await pdfAttachment(report), idempotencyKey: `weekly-report-${report.weekEnding}` });
     await deps.finish(claim.id, { status: "sent", providerId: id });
     return { status: "sent", reason: `Emailed ${config.to.length} address${config.to.length === 1 ? "" : "es"}.`, recipients: config.to.length, id };
   } catch (e) {
@@ -66,7 +76,7 @@ export async function sendTestEmail(report: ReportJson, send: typeof sendViaRese
   const { config } = cfg;
   const mail = buildEmail(report, { siteUrl: config.siteUrl, test: true });
   try {
-    const { id } = await send({ apiKey: config.apiKey, from: config.from, to: config.to, subject: mail.subject, html: mail.html, text: mail.text });
+    const { id } = await send({ apiKey: config.apiKey, from: config.from, to: config.to, subject: mail.subject, html: mail.html, text: mail.text, attachments: await pdfAttachment(report) });
     return { status: "sent", reason: `Test email sent to ${config.to.map(maskEmail).join(", ")}.`, recipients: config.to.length, id };
   } catch (e) {
     return { status: "failed", reason: e instanceof EmailError ? e.message : `Sending failed: ${(e as Error).message}`, recipients: 0 };

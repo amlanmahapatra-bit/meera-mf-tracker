@@ -10,6 +10,8 @@ export type SendInput = {
   text: string;
   /** Resend ignores a second request with the same key within 24 hours, so a retry can never send twice. */
   idempotencyKey?: string;
+  /** Files to attach (content is the raw bytes; they are base64-encoded for Resend). */
+  attachments?: { filename: string; content: Uint8Array }[];
 };
 
 export class EmailError extends Error {
@@ -40,7 +42,10 @@ export async function sendViaResend(input: SendInput): Promise<{ id: string }> {
       "Content-Type": "application/json",
       ...(input.idempotencyKey ? { "Idempotency-Key": input.idempotencyKey } : {}),
     },
-    body: JSON.stringify({ from: input.from, to: input.to, subject: input.subject, html: input.html, text: input.text }),
+    body: JSON.stringify({
+      from: input.from, to: input.to, subject: input.subject, html: input.html, text: input.text,
+      ...(input.attachments?.length ? { attachments: input.attachments.map((a) => ({ filename: a.filename, content: Buffer.from(a.content).toString("base64") })) } : {}),
+    }),
     timeoutMs: 20_000,
     retries: 2, // network errors, 429 and 5xx are retried with backoff
   });
