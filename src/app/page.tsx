@@ -9,11 +9,11 @@ import NewsList from "@/components/NewsList";
 import ShareCard from "@/components/ShareCard";
 import TrendSection from "@/components/TrendSection";
 import VerdictBanner from "@/components/VerdictBanner";
-import { istToday } from "@/lib/dates";
+import { istToday, weekEndingFor } from "@/lib/dates";
 import { fmtDate } from "@/lib/format";
 import { slotRank } from "@/lib/funds";
 import { getLatestReport, getNavSeries, getSnapshots } from "@/lib/queries";
-import { daysBetween } from "@/lib/returns";
+import { addDays, daysBetween } from "@/lib/returns";
 
 function Skeleton() {
   return (
@@ -62,6 +62,8 @@ async function Dashboard() {
   ]);
   const dataAsOf = funds.map((f) => f.asOf).sort().pop() ?? report.weekEnding;
   const age = daysBetween(report.weekEnding, istToday());
+  const today = istToday();
+  const nextReport = weekEndingFor(today) === today ? today : addDays(weekEndingFor(today), 7);
 
   return (
     <div className="space-y-8">
@@ -74,7 +76,7 @@ async function Dashboard() {
       <Link href="/report" className="themed flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-5 py-4 shadow-card hover:bg-card-2">
         <span>
           <span className="block text-[15px] font-bold">Read the full weekly report</span>
-          <span className="block text-sm text-ink-2">The whole week in one page: markets, news, every fund. This is also what we email you on Saturday.</span>
+          <span className="block text-sm text-ink-2">The whole week in one page: markets, news, every fund. Emailed to you every Saturday morning. Next report: <strong className="text-ink">{fmtDate(nextReport)}</strong>, 7:30 am.</span>
         </span>
         <span aria-hidden="true" className="text-xl text-accent">&rarr;</span>
       </Link>
