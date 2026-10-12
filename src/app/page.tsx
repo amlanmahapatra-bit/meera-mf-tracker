@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import FundCard from "@/components/FundCard";
 import IndexStrip from "@/components/IndexStrip";
+import MarketStory from "@/components/MarketStory";
 import NewsList from "@/components/NewsList";
 import ShareCard from "@/components/ShareCard";
 import TrendSection from "@/components/TrendSection";
@@ -69,6 +70,13 @@ async function Dashboard() {
         </p>
       )}
       <VerdictBanner report={report} dataAsOf={dataAsOf} />
+      <Link href="/report" className="themed flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-5 py-4 shadow-card hover:bg-card-2">
+        <span>
+          <span className="block text-[15px] font-bold">Read the full weekly report</span>
+          <span className="block text-sm text-ink-2">The whole week in one page: markets, news, every fund. This is also what we email you on Saturday.</span>
+        </span>
+        <span aria-hidden="true" className="text-xl text-accent">&rarr;</span>
+      </Link>
       <section aria-labelledby="funds-title">
         <h2 id="funds-title" className="text-lg font-bold tracking-tight">Your funds, in plain words</h2>
         <p className="mt-1 text-sm text-ink-2">Three short lines for each fund. Tap a fund to see its whole history.</p>
@@ -77,6 +85,7 @@ async function Dashboard() {
         </div>
       </section>
       <IndexStrip moves={report.marketContext.indexMoves} />
+      <MarketStory market={report.marketContext} />
       <TrendSection funds={funds} snapshots={snapshots} />
       <NewsList news={report.marketContext.news} />
       <ShareCard report={report} />

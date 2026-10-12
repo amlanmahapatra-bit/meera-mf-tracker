@@ -25,8 +25,18 @@ const goodAnswer = {
   funds: [{ schemeCode: 111, sentences: [
     "Your Large Cap fund fell 2.1% this week, and is up 5.0% since January.",
     "Over the last month it did a little worse than the Nifty 50, and a little worse than 3 similar funds.",
-    "Most of the drop came from the whole market, and I do not know of any news that explains the rest.",
+    "Most of the drop came from the whole market, and the news \"Crude oil jumps as Fed holds rates\" (Reuters) may have pushed it.",
+  ], detail: [
+    "Your Large Cap fund fell 2.1% this week.",
+    "It is up 5.0% since January.",
+    "Over the last month it did a little worse than the Nifty 50.",
+    "Most of the drop came from the whole market.",
+    "The news \"Crude oil jumps as Fed holds rates\" may have pushed it.",
   ] }],
+  market: {
+    overview: ["The Nifty 50 fell 1.9% this week.", "Most big companies were weaker.", "It was a calm but negative week."],
+    drivers: [{ headline: "Crude oil jumps as Fed holds rates", text: "Higher oil prices can make companies and investors more careful." }],
+  },
   verdict: VERDICTS.none,
   verdictReason: "Your Large Cap fund is only a little behind the market, so nothing needs attention.",
 };

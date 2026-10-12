@@ -5,7 +5,7 @@ It fetches live prices, works out how each fund did, compares it with the market
 and has **Gemini Flash** explain the result in everyday words. Built for the MESA Cohort C4 "AI and its
 Applications" exam (Problem Statement 19).
 
-> **Status:** backend, website, the Saturday email and five years of history are built and tested. Remaining: switching the email on (needs Resend details) and the Vercel deployment. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
+> **Status:** backend, website, the Saturday email and five years of history are built and tested. The weekly report is now a detailed whole-week report (also at `/report`), reasons come from live GNews headlines, and the test email has been sent. Remaining: run `sql/002_email_log.sql` in Supabase, and the Vercel deployment. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
 >
 > **Live site:** _to be added after deployment_
 
@@ -16,7 +16,7 @@ Applications" exam (Problem Statement 19).
 3. Simple, documented rules turn those gaps into a **green / amber / red** light for each fund and an overall verdict ("No action needed", "One fund worth watching" or "Consider reviewing your allocation").
 4. That week's market headlines (GNews, or Google News as a backup) and all the computed numbers go to **Gemini Flash** (a Google model, reached through the OpenRouter gateway) in one call. It writes three plain sentences per fund. **It never calculates anything**; its answer is checked and rejected if it invents a number, uses jargon, gives advice or quotes a headline we did not give it. If Gemini is unavailable, a built-in template writes the text from the same numbers.
 5. Everything is stored in **Supabase** so weeks can be compared over time. The past five years of weekly results are replayed from the real price history, so the trend chart is full from day one.
-6. Right after the check-up is saved, it is **emailed** (via Resend) to Meera. This happens once per week, never twice.
+6. Right after the check-up is saved, a **detailed weekly report** (week at a glance, why the markets moved with links to the real news, a longer story and long-term returns for every fund, all headlines read) is **emailed** (via Resend) to Meera. The same report is on the site at `/report` (printable). This happens once per week, never twice.
 
 Details and diagram: [`docs/COMPONENTS_MAP.md`](docs/COMPONENTS_MAP.md). Design decisions and their weaknesses: [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md).
 

@@ -57,7 +57,7 @@ describe("sendWeeklyEmail", () => {
     expect(d.claim).toHaveBeenCalledWith("2026-10-10", 1);
     expect(d.send).toHaveBeenCalledTimes(1);
     expect(d.send.mock.calls[0][0]).toMatchObject({ to: ["meera@example.com"], idempotencyKey: "weekly-report-2026-10-10" });
-    expect(d.send.mock.calls[0][0].subject).toBe("Your Saturday money check-up: No action needed");
+    expect(d.send.mock.calls[0][0].subject).toBe("Your Saturday money report: No action needed");
     expect(d.finish).toHaveBeenCalledWith("log1", { status: "sent", providerId: "em_1" });
   });
 

@@ -97,6 +97,15 @@ async function Detail({ params }: { params: Promise<{ code: string }> }) {
         </div>
       </section>
 
+      {fund.detail && fund.detail.length > 0 && (
+        <section aria-labelledby="story">
+          <h2 id="story" className="text-lg font-bold tracking-tight">The full story of the week</h2>
+          <div className="themed mt-3 space-y-2 rounded-2xl border border-line bg-card p-5 text-[16px] leading-relaxed text-ink-2 shadow-card sm:p-6">
+            <p>{fund.detail.join(" ")}</p>
+          </div>
+        </section>
+      )}
+
       <section aria-labelledby="price">
         <h2 id="price" className="text-lg font-bold tracking-tight">Price history</h2>
         <p className="mt-1 text-sm text-ink-2">The price of one unit of this fund, day by day, from the day it started. Pick a period, then hover or touch the line to read any day.</p>

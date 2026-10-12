@@ -72,7 +72,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | 7 | "Send to my CA" WhatsApp button (optional extra, small and out of the way) (`wa.me/?text=`) | ✅ dashboard card, each fund page, and `/share` (WhatsApp, email, copy, CSV, print/PDF); message lists every fund's name, scheme code, NAV, date and returns (`src/lib/share.ts`, tested) |
 | 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (each question costs about a cent; add a daily cap) |
 | 9 | English / Hinglish toggle | 🟡 prompt ready · toggle ⏳ (lowest priority) |
-| 10 | Saturday email delivery | 🟡 fully built and tested (Resend; HTML + text; never-twice log; only on the Saturday job; test button). Switches on when the owner provides a Resend key, the recipient address and the sender; the `sql/002_email_log.sql` migration must be run once. |
+| 10 | Saturday email delivery (a detailed whole-week report, not a three-liner) | 🟡 fully built and tested; test email delivered to the owner; needs `sql/002_email_log.sql` run in Supabase and the Vercel deployment. Details: (Resend; HTML + text; never-twice log; only on the Saturday job; test button). Switches on when the owner provides a Resend key, the recipient address and the sender; the `sql/002_email_log.sql` migration must be run once. |
 
 ## 6. Build order
 

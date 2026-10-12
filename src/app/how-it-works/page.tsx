@@ -12,7 +12,7 @@ const STEPS = [
   { title: "We compare each fund fairly", body: "Each fund is compared with the market index it follows and with the average of similar funds. Both use the very same dates as your fund, so nothing is compared unfairly." },
   { title: "We split the week into “market” and “fund”", body: "If the market fell 1.9% and your fund fell 2.1%, then 1.9% of your drop was the whole market and 0.2% was the fund itself. That tells you whether to worry about the fund or just the market." },
   { title: "We read the week's headlines", body: "We pick the main market and economy news of the week (from GNews, or Google News if GNews is not working) so the explanation can mention what was going on." },
-  { title: "Gemini writes it up in plain words", body: "Google's Gemini AI gets only the finished numbers and the headlines. It writes three short sentences per fund. It never does any maths." },
+  { title: "Gemini writes it up in plain words", body: "Google's Gemini AI gets only the finished numbers and the headlines. It writes three short sentences per fund (the third gives the reason, taken from a real headline you can click), a short story of the week, and a summary of why the markets moved. It never does any maths." },
   { title: "Code checks every word", body: "Before anything is shown, the program rejects the AI's text if it invents a number, uses jargon, gives investment advice, or quotes a headline we did not give it. If the AI is unavailable, a simple built-in template writes the text instead, and the page says so." },
 ];
 

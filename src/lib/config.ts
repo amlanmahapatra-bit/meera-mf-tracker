@@ -86,7 +86,7 @@ export const HTTP = { timeoutMs: 15_000, retries: 2, backoffMs: 800 } as const;
 // ---------- News ----------
 export const NEWS = {
   /** How many headlines we keep and send to Gemini (small payloads only). */
-  maxHeadlines: 8,
+  maxHeadlines: 12,
   /** Only headlines from the last N days. */
   lookbackDays: 7,
 } as const;

@@ -1,4 +1,5 @@
 import { addDays, computeReturns, type Point } from "../returns";
+import { periodReturns } from "../periods";
 import { alignedReturns, compareFund, convertToInr, matchedReturns, peerAverageMatched } from "../comparison";
 import { BENCHMARKS, MARKET_CONTEXT_INDEXES, USDINR_SYMBOL } from "../config";
 import { istToday, weekEndingFor } from "../dates";
@@ -36,7 +37,7 @@ export async function runWeekly(opts: { weekEnding?: string; sendEmail?: boolean
   const fx = await getIndex(USDINR_SYMBOL, "US dollar to rupee rate");
 
   // --- Per-fund numbers ---
-  const reportFunds: Omit<FundReport, "sentences">[] = [];
+  const reportFunds: Omit<FundReport, "sentences" | "detail">[] = [];
   const recent: ReportInput["recentStatuses"] = {};
   const snapshotDrafts: SnapshotDraft[] = [];
 
@@ -84,9 +85,11 @@ export async function runWeekly(opts: { weekEnding?: string; sendEmail?: boolean
 
     recent[f.scheme_code] = await recentStatuses(f.scheme_code, weekEnding);
     dataNotes.forEach((n) => notes.push(`${f.slot}: ${n}`));
+    const summary = periodReturns(nav.series);
     reportFunds.push({
       schemeCode: f.scheme_code, name: f.name, slot: f.slot, status, weeksLagging,
       nav: fundReturns.latestValue, asOf: fundReturns.asOf, comparison, referenceLabel, dataNotes,
+      periods: summary?.rows, historyYears: summary ? Math.round(summary.years * 10) / 10 : undefined,
     });
     snapshotDrafts.push(snapshotDraft(weekEnding, f.scheme_code, fundReturns.latestValue, comparison, status, weeksLagging));
   }
@@ -118,8 +121,8 @@ export async function runWeekly(opts: { weekEnding?: string; sendEmail?: boolean
   const report: ReportJson = {
     weekEnding, generatedAt: new Date().toISOString(), language: "en",
     verdict: written.verdict, verdictReason: written.verdictReason,
-    funds: reportFunds.map((f) => ({ ...f, sentences: written.sentences[f.schemeCode] })),
-    marketContext: input.marketContext, writer: written.writer,
+    funds: reportFunds.map((f) => ({ ...f, sentences: written.sentences[f.schemeCode], detail: written.detail[f.schemeCode] })),
+    marketContext: { ...input.marketContext, overview: written.overview, drivers: written.drivers }, writer: written.writer,
   };
   if (written.writer.kind === "template" && written.writer.reason) notes.push(`Report text: ${written.writer.reason}`);
 

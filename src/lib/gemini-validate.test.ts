@@ -26,8 +26,18 @@ const good = () => ({
   funds: [{ schemeCode: 111, sentences: [
     "Your Large Cap fund fell 2.1% this week, and is up 5.0% since January.",
     "Over the last month it did a little worse than the Nifty 50, and a little worse than 3 similar funds.",
-    "Most of the drop came from the whole market, and I do not know of any news that explains the rest.",
+    "Most of the drop came from the whole market, and the news \"Crude oil jumps as Fed holds rates\" (Reuters) may have pushed it.",
+  ], detail: [
+    "Your Large Cap fund fell 2.1% this week.",
+    "It is up 5.0% since January.",
+    "Over the last month it did a little worse than the Nifty 50.",
+    "Most of the drop came from the whole market.",
+    "The news \"Crude oil jumps as Fed holds rates\" may have pushed it.",
   ] }],
+  market: {
+    overview: ["The Nifty 50 fell 1.9% this week.", "Most big companies were weaker.", "It was a calm but negative week."],
+    drivers: [{ headline: "Crude oil jumps as Fed holds rates", text: "Higher oil prices can make companies and investors more careful." }],
+  },
   verdict: VERDICTS.none,
   verdictReason: "Your Large Cap fund is only a little behind the market, so nothing needs attention.",
 });
@@ -99,7 +109,7 @@ describe("validateAnswer", () => {
   it("does not demand a split for a fund that has none (the debt fund)", () => {
     const noSplit = { ...input, funds: [{ ...input.funds[0], comparison: { ...input.funds[0].comparison, split: null } }] };
     const a = good();
-    a.funds[0].sentences[2] = "I do not know what caused it.";
+    a.funds[0].sentences[2] = "There is no market score for this kind of fund, and the news \"Crude oil jumps as Fed holds rates\" may matter for it.";
     expect(validateAnswer(a, noSplit, buildFacts(noSplit)).ok).toBe(true);
   });
   it("rejects words that are not plain language: index, points, peers", () => {
@@ -148,10 +158,35 @@ describe("validateAnswer", () => {
     a.funds[0].schemeCode = 999;
     expect(validateAnswer(a, input, facts).ok).toBe(false);
   });
-  it("allows an honest 'I don't know' as long as the split is still stated", () => {
+  it("rejects an 'I do not know' reason when real headlines were provided and the market moved", () => {
     const a = good();
     a.funds[0].sentences[2] = "Almost all of the drop came from the whole market, and I do not know of a news event that explains it.";
-    expect(validateAnswer(a, input, facts).ok).toBe(true);
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("quoting the exact title");
+  });
+  it("allows 'we found no news' only when there are no headlines at all", () => {
+    const none = { ...input, marketContext: { ...input.marketContext, news: { ...input.marketContext.news, headlines: [] } } };
+    const a = good();
+    a.funds[0].sentences[2] = "Almost all of the drop came from the whole market, and we could not find news for this week.";
+    a.market.drivers = [];
+    a.funds[0].detail[4] = "We could not find news that fits this week.";
+    expect(validateAnswer(a, none, buildFacts(none)).ok).toBe(true);
+  });
+  it("requires each market driver to match a provided headline exactly", () => {
+    const a = good();
+    a.market.drivers[0].headline = "Something nobody published";
+    const r = validateAnswer(a, input, facts);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.problems.join(" ")).toContain("not an exact provided headline");
+  });
+  it("requires the longer story and the market summary", () => {
+    const a = good() as Record<string, unknown>;
+    delete a.market;
+    expect(validateAnswer(a, input, facts).ok).toBe(false);
+    const b = good();
+    b.funds[0].detail = ["Only one."];
+    expect(validateAnswer(b, input, facts).ok).toBe(false);
   });
   it("rejects non-objects", () => {
     expect(validateAnswer(null, input, facts).ok).toBe(false);
