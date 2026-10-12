@@ -3,7 +3,7 @@
 Every instruction in `CLAUDE.md`, with its real status. Updated as work lands.
 Legend: ✅ done and verified · 🟡 built, one part still to verify or finish · ⏳ not started yet (planned) · ➖ deliberately not done (reason given)
 
-_Last updated: after build steps 1–6, 8 (backend) and 9, and the OpenRouter switch (live Gemini report verified)._
+_Last updated: after build steps 1–9, the OpenRouter switch, and the first UI round (dashboard, fund pages, share, manage, how it works)._
 
 ## 1. Hard rules from the exam
 
@@ -13,7 +13,7 @@ _Last updated: after build steps 1–6, 8 (backend) and 9, and the OpenRouter sw
 | 2 | Use **live external data** | ✅ | mfapi.in, Yahoo Finance, GNews / Google News RSS, all verified with real requests (`npm run verify`). |
 | 3 | Deploy on **Vercel**; deliver public URL + GitHub repo + Components Map | ⏳ | Repo ✅ (pushed). Components Map ✅ draft in `docs/`. Vercel project + public URL ⏳. |
 | 4 | Weekly snapshots in **Supabase** | ✅ | `weekly_snapshots` written by `src/lib/pipeline/weekly.ts`; idempotent (verified: re-run leaves 5 rows). |
-| 5 | Meera can **add/remove a fund** from a web form, no code changes | 🟡 | API done and tested end to end (`/api/funds`, `/search`, `/preview`). The **web form** itself ⏳ (UI phase). |
+| 5 | Meera can **add/remove a fund** from a web form, no code changes | ✅ | Form at `/manage` (`src/components/ManagePanel.tsx`): passcode, search by name or paste a code, suggested slot/index, add, remove with confirmation. Tested in a real browser (wrong/right passcode, search, preview); the add and remove calls were tested end to end earlier against the live database. |
 | 6 | Secrets only in env vars; `.env.local` in `.gitignore` | ✅ | `.gitignore` has `.env*` (+ `!.env.example`); verified with `git check-ignore`; `git ls-files` contains no env file. |
 
 ## 2. Data sources (verify each with a real request)
@@ -60,16 +60,16 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 |---|---|---|
 | 1 | Daily cron: latest NAV for active funds → `nav_history` | ✅ route + job tested; `vercel.json` ⏳ live on Vercel |
 | 2 | Saturday cron: context, snapshots, Gemini, save to `weekly_snapshots` + `weekly_reports` | ✅ tested end to end live (status `success`) |
-| 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ⏳ UI phase (all data is ready in the database) |
-| 4 | Add/remove fund form: search by NAME (Direct + Growth only), or paste code; validate, backfill, suggest slot/benchmark, find peers; remove = `active=false`; `ADMIN_PASSCODE` | 🟡 API ✅ · form ⏳ |
-| 5 | "Run now" so the site has real data | ✅ `/api/admin/run` (verified: 63 s, double-run guard works) · button ⏳ |
-| 6 | Graceful failures: last good data + "data as of" note, never a blank crash | 🟡 backend ✅ (cache fallback, notes recorded) · on-screen notes ⏳ |
+| 3 | Dashboard: report, verdict banner, traffic-light cards, market-vs-fund split, 3 sentences, multi-week trend chart | ✅ `src/app/page.tsx` + `FundCard`, `VerdictBanner`, `SplitBar`, `TrendSection`. First round shown to the owner; polish continues from their comments. Trend chart fills in as weeks accumulate (1 week saved so far). |
+| 4 | Add/remove fund form: search by NAME (Direct + Growth only), or paste code; validate, backfill, suggest slot/benchmark, find peers; remove = `active=false`; `ADMIN_PASSCODE` | ✅ `/manage` |
+| 5 | "Run now" so the site has real data | ✅ `/api/admin/run` (verified: 63 s, double-run guard works) · "Update now" button on `/manage` with progress and result |
+| 6 | Graceful failures: last good data + "data as of" note, never a blank crash | ✅ backend cache fallback · on screen: "prices as of", per-fund fallback notes, "last week's report" notice, loading skeletons, error and empty states (`error.tsx`, `not-found.tsx`) |
 
 **Standout** (after the must-haves work end to end)
 
 | # | Feature | Status |
 |---|---|---|
-| 7 | "Send to my CA" WhatsApp button (`wa.me/?text=`) | ⏳ (build first, cheap and memorable) |
+| 7 | "Send to my CA" WhatsApp button (`wa.me/?text=`) | ✅ dashboard card, each fund page, and `/share` (WhatsApp, email, copy, CSV, print/PDF); message lists every fund's name, scheme code, NAV, date and returns (`src/lib/share.ts`, tested) |
 | 8 | "Ask about my money" chat (answers only from stored data + headlines) | ⏳ (each question costs about a cent; add a daily cap) |
 | 9 | English / Hinglish toggle | 🟡 prompt ready · toggle ⏳ (lowest priority) |
 | 10 | Saturday email delivery | ⏳ (lowest priority; needs a free email service, ask first) |
@@ -84,8 +84,8 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | 4 Index data + benchmark/category comparison | ✅ |
 | 5 Pipeline: snapshots, status, verdict | ✅ |
 | 6 Gemini report with validation + fallback | ✅ verified live |
-| 7 Dashboard UI | ⏳ (next phase, with the owner's design vision) |
-| 8 Add/remove fund flow | 🟡 API ✅ · form ⏳ |
+| 7 Dashboard UI | ✅ first round (light + dark mode, mobile-friendly); refining with the owner's comments |
+| 8 Add/remove fund flow | ✅ |
 | 9 Cron routes + `vercel.json` | ✅ code · ⏳ live |
 | 10 Standout features | ⏳ |
 | 11 `docs/COMPONENTS_MAP.md` (+ PNG/PDF), README | ✅ written and exported; final pass after UI |
@@ -95,7 +95,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | Item | Status |
 |---|---|
 | Public Vercel URL shows a real weekly report with real numbers | ⏳ (a real report is already in the database) |
-| Add/remove a fund from the form without code | 🟡 API ✅, form ⏳ |
+| Add/remove a fund from the form without code | ✅ |
 | Cron routes configured and secured; first run done manually | ✅ secured and configured · manual run ✅ locally · ⏳ on Vercel |
 | No secrets in the repo | ✅ |
 | `docs/COMPONENTS_MAP.md` (+ PNG/PDF), `docs/TRADEOFFS.md`, `docs/DEMO.md`, README in the repo | ✅ all present (`docs/components-map.png` and `.pdf` exported); DEMO and map get a final polish after the UI |
@@ -109,7 +109,7 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | Backend logic & build quality | 25% | ✅ strong: staged pipeline, idempotent upserts, timeouts/retries/fallbacks, validation, 105 tests, `pipeline_runs` |
 | Components Map | 10% | ✅ Mermaid diagram + full component table + PNG and PDF export |
 | Working Vercel link | 10% | ⏳ |
-| Design | 10% | ⏳ (UI phase) |
+| Design | 10% | 🟡 first round built: calm light-blue palette, light/dark toggle, accessible traffic lights (icon + word), validated chart colours; refining with owner feedback |
 | Demo video | 5% | ⏳ script drafted in `docs/DEMO.md`; owner records |
 | `docs/TRADEOFFS.md` | assessed | ✅ drafted, covers every topic the brief lists |
 
@@ -118,11 +118,11 @@ Extra care added: US fund (Nasdaq) is converted to rupees and lined up with the 
 | Item | Status |
 |---|---|
 | Reliability first (timeouts, retries, fallbacks everywhere) | ✅ backend |
-| Plain language everywhere + hover glossary | 🟡 report text ✅ · glossary ⏳ |
-| Honest numbers: computed in code, "data as of", method shown | ✅ computed · ⏳ shown on screen |
-| "How this works" page on the site | ⏳ |
+| Plain language everywhere + hover glossary | ✅ glossary tooltips (`Term`), plain report text |
+| Honest numbers: computed in code, "data as of", method shown | ✅ computed and shown ("Average of N similar funds", "prices as of", comparison table, "Why this traffic light?") |
+| "How this works" page on the site | ✅ `/how-it-works` |
 | Tests for returns engine (weekend, year start, missing NAV, peer failures) | ✅ |
-| Polish: mobile, loading/empty/error states, accessible colours (icons/text with traffic lights) | ⏳ |
+| Polish: mobile, loading/empty/error states, accessible colours (icons/text with traffic lights) | ✅ first round; verified in a real browser at desktop and phone width in both modes, production build passes |
 | Security: cron needs `CRON_SECRET`, fund changes need `ADMIN_PASSCODE`, validate input | ✅ verified with real requests |
 | Submission readiness: README with setup, env vars, architecture, limitations, checklist | ✅ draft |
 

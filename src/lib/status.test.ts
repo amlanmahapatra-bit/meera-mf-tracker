@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { VERDICTS } from "./config";
-import { candidateVerdict, fundStatus, isBehindThisWeek, nextWeeksLagging, type FundFlagInput } from "./status";
+import { candidateVerdict, fundStatus, isBehindThisWeek, nextWeeksLagging, peerStanding, type FundFlagInput } from "./status";
 import { istToday, weekEndingFor } from "./dates";
 
 describe("fundStatus", () => {
@@ -86,5 +86,26 @@ describe("dates", () => {
     // 20:00 UTC on Fri 9 Oct is already 01:30 on Sat 10 Oct in India.
     expect(istToday(Date.UTC(2026, 9, 9, 20, 0))).toBe("2026-10-10");
     expect(istToday(Date.UTC(2026, 9, 9, 10, 0))).toBe("2026-10-09");
+  });
+});
+
+describe("peerStanding (the Outperforming label)", () => {
+  it("ahead when at least 0.5 points above similar funds over the month", () => {
+    expect(peerStanding(1.6, 5)).toBe("ahead");
+    expect(peerStanding(0.5, 3)).toBe("ahead"); // boundary is inclusive
+  });
+  it("behind when at least 0.5 points below", () => {
+    expect(peerStanding(-0.5, 4)).toBe("behind");
+    expect(peerStanding(-2, 9)).toBe("behind");
+  });
+  it("level in between", () => {
+    expect(peerStanding(0.49, 9)).toBe("level");
+    expect(peerStanding(-0.49, 9)).toBe("level");
+    expect(peerStanding(0, 9)).toBe("level");
+  });
+  it("says nothing with too few similar funds or no data", () => {
+    expect(peerStanding(3, 1)).toBeNull();
+    expect(peerStanding(3, 0)).toBeNull();
+    expect(peerStanding(null, 9)).toBeNull();
   });
 });

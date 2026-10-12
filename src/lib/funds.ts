@@ -7,6 +7,12 @@ import { BENCHMARKS } from "./config";
 export const MAX_ACTIVE_FUNDS = 8;
 export const SLOT_SUGGESTIONS = ["Large Cap", "Mid Cap", "Small Cap", "Short Duration Debt", "International"] as const;
 
+/** Display order of funds: the standard slots first, anything custom after. */
+export const slotRank = (slot: string) => {
+  const i = (SLOT_SUGGESTIONS as readonly string[]).indexOf(slot);
+  return i === -1 ? SLOT_SUGGESTIONS.length : i;
+};
+
 export type Suggestion = { slot: string; benchmarkName: string | null; reason: string };
 
 /** Guesses a sensible slot and index from the fund's name (the form pre-fills these; Meera can change them). */

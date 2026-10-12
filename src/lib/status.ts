@@ -2,7 +2,7 @@
  * Traffic-light status per fund and the overall candidate verdict.
  * Deterministic rules; thresholds come from config.ts. The AI never decides these.
  */
-import { STATUS_RULES, VERDICTS, VERDICT_REVIEW_MIN_FLAGGED, type Verdict } from "./config";
+import { PEER_STANDING, STATUS_RULES, VERDICTS, VERDICT_REVIEW_MIN_FLAGGED, type Verdict } from "./config";
 
 export type Status = "green" | "amber" | "red" | "unknown";
 
@@ -81,4 +81,17 @@ export function candidateVerdict(funds: FundFlagInput[]): CandidateVerdict {
     reason: `${flagged.length} of your funds are behind (${slots.join(", ")}). ${flagSentence(worstFund)}${note}.`,
     flaggedSlots: slots,
   };
+}
+
+export type PeerStanding = "ahead" | "level" | "behind";
+
+/**
+ * How the fund did against the average of similar funds over the last month.
+ * null when there are too few similar funds (or no data) to say anything honest.
+ */
+export function peerStanding(monthGapVsPeers: number | null, peersUsed: number): PeerStanding | null {
+  if (monthGapVsPeers === null || peersUsed < PEER_STANDING.minPeers) return null;
+  if (monthGapVsPeers >= PEER_STANDING.aheadMinMonthGap) return "ahead";
+  if (monthGapVsPeers <= PEER_STANDING.behindMaxMonthGap) return "behind";
+  return "level";
 }

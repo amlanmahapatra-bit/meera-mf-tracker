@@ -23,6 +23,16 @@ export const STATUS_RULES = {
   redWeeksLagging: 8,
 } as const;
 
+// ---------- Standing against similar funds (the "Outperforming" label) ----------
+export const PEER_STANDING = {
+  /** Month gap vs the average of similar funds, in percentage points. At or above this -> "Outperforming". */
+  aheadMinMonthGap: 0.5,
+  /** At or below this -> "Behind similar funds". In between -> in line (no label). */
+  behindMaxMonthGap: -0.5,
+  /** Need at least this many similar funds to say anything. */
+  minPeers: 2,
+} as const;
+
 // ---------- Overall verdict (exact strings; also enforced by a database CHECK constraint) ----------
 export const VERDICTS = {
   none: "No action needed",

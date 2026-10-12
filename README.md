@@ -5,7 +5,7 @@ It fetches live prices, works out how each fund did, compares it with the market
 and has **Gemini Flash** explain the result in everyday words. Built for the MESA Cohort C4 "AI and its
 Applications" exam (Problem Statement 19).
 
-> **Status:** backend complete, tested and verified live end to end (a real Gemini-written report is stored); the website screens and the Vercel deployment are the remaining items. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
+> **Status:** backend and website built and tested; the Vercel deployment is the remaining item. See [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) for the line-by-line tracker.
 >
 > **Live site:** _to be added after deployment_
 
