@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "verify": "tsx --env-file-if-exists=.env.local scripts/verify-connections.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "demo:returns": "tsx scripts/demo-returns.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.3",
@@ -18,13 +20,14 @@
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22.20.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.4"
   }
 }
