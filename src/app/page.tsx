@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import AskBox from "@/components/AskBox";
 import FundCard from "@/components/FundCard";
 import IndexStrip from "@/components/IndexStrip";
 import MarketStory from "@/components/MarketStory";
@@ -84,6 +85,7 @@ async function Dashboard() {
           {funds.map((f, i) => <FundCard key={f.schemeCode} fund={f} prices={priceSets[i]} />)}
         </div>
       </section>
+      <AskBox />
       <IndexStrip moves={report.marketContext.indexMoves} />
       <MarketStory market={report.marketContext} />
       <TrendSection funds={funds} snapshots={snapshots} />

@@ -146,7 +146,7 @@ export type GeminiAnswer = {
 };
 export type ValidationResult = { ok: true; answer: GeminiAnswer } | { ok: false; problems: string[] };
 
-const JARGON = /\b(alpha|beta|sharpe|volatility|benchmark\w*|outperform\w*|underperform\w*|basis points?|bps|cagr|aum|expense ratio|nav|index(?!\s+fund)|indices|points?|percentage|peers?|allocation|momentum|correction|rally|bullish|bearish)\b/i;
+export const JARGON = /\b(alpha|beta|sharpe|volatility|benchmark\w*|outperform\w*|underperform\w*|basis points?|bps|cagr|aum|expense ratio|nav|index(?!\s+fund)|indices|points?|percentage|peers?|allocation|momentum|correction|rally|bullish|bearish)\b/i;
 /** Plain-language limits for one sentence. */
 export const MAX_WORDS = 30; // asked for 25; a little slack so a slightly longer sentence does not trigger a retry
 export const MAX_NUMBERS = 2;
@@ -154,8 +154,8 @@ export const MAX_NUMBERS = 2;
 const MAX_NUMBERS_LONG = 3;
 
 /** A minus or plus sign glued to a number ("-2.6%", "+0.4"): spreadsheet-speak, not plain language. */
-const SIGNED_NUMBER = /(?:^|[\s(])[-−–+]\s?\d/;
-const ADVICE = /\b(buy|sell|switch|redeem|invest more|you should|i recommend|must exit)\b/i;
+export const SIGNED_NUMBER = /(?:^|[\s(])[-−–+]\s?\d/;
+export const ADVICE = /\b(buy|sell|switch|redeem|invest more|you should|i recommend|must exit)\b/i;
 
 /** Numbers like 2.1, -0.35, 1,234 found in text, as absolute values. */
 export function numbersIn(text: string): number[] {

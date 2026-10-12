@@ -63,6 +63,7 @@ Secrets live only in environment variables; `.env.local` is git-ignored.
 | Route | Who | Does |
 |---|---|---|
 | `GET /api/cron/daily`, `GET /api/cron/weekly` | Vercel Cron, `Authorization: Bearer CRON_SECRET` | The scheduled jobs (daily 07:00 IST, Saturday 07:30 IST; see `vercel.json`) |
+| `POST /api/ask` | Public (12 questions/hour per visitor) | "Ask about your money": Gemini answers from the saved report and headlines only; answer checked for invented numbers, jargon, advice |
 | `POST /api/admin/run` | Passcode | "Update now": save prices, build the report (never sends the email) |
 | `POST /api/admin/backfill?years=5` | Passcode | Fill in past weekly history for the trend chart (safe to repeat) |
 | `GET /api/admin/email-status`, `POST /api/admin/send-test-email` | Passcode | Is the email ready (masked addresses) / send a clearly marked test email |
