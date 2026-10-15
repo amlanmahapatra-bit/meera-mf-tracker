@@ -9,7 +9,7 @@ const TONE = {
 } as const;
 
 /** The first thing Meera reads: one of three fixed verdicts, a specific reason, and where the words came from. */
-export default function VerdictBanner({ report, dataAsOf }: { report: ReportJson; dataAsOf: string }) {
+export default function VerdictBanner({ report, dataAsOf, reportAsOf }: { report: ReportJson; dataAsOf: string; reportAsOf: string }) {
   const tone = TONE[report.verdict] ?? TONE[VERDICTS.none];
   const ai = report.writer.kind === "gemini";
   return (
@@ -29,7 +29,7 @@ export default function VerdictBanner({ report, dataAsOf }: { report: ReportJson
         </div>
       </div>
       <p className="mt-4 text-xs text-ink-3">
-        Prices as of {fmtDate(dataAsOf)}.{" "}
+        Latest prices as of {fmtDate(dataAsOf)}.{dataAsOf > reportAsOf ? ` This check-up uses prices up to ${fmtDate(reportAsOf)} and is refreshed every Saturday.` : ""}{" "}
         {ai ? "Words written by Google Gemini and checked against the numbers." : "Words written by our built-in template, because the AI writer was not available this time."}
       </p>
     </section>

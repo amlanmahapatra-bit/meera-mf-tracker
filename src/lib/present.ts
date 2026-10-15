@@ -40,3 +40,15 @@ export function comparisonRows(c: FundComparison): ComparisonRow[] {
   }
   return rows;
 }
+
+/**
+ * The newest saved price for a fund, when it is newer than the one the Saturday report used.
+ * The daily job saves prices every day; the check-up figures only change on Saturdays, so the screen shows both.
+ * `sinceReportPct` is how far the price has moved since the report's price (computed here, never by the AI).
+ */
+export function latestPrice(prices: { date: string; value: number }[], reportNav: number, reportAsOf: string): { nav: number; date: string; sinceReportPct: number | null } | null {
+  const last = prices[prices.length - 1];
+  if (!last || last.date <= reportAsOf || !Number.isFinite(last.value)) return null;
+  const pct = reportNav > 0 ? (last.value / reportNav - 1) * 100 : null;
+  return { nav: last.value, date: last.date, sinceReportPct: pct };
+}

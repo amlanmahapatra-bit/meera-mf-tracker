@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BENCHMARKS } from "@/lib/config";
 import { fmtDate, fmtNav, fmtPct, toneClass } from "@/lib/format";
-import { comparisonRows, shortName } from "@/lib/present";
+import { comparisonRows, latestPrice, shortName } from "@/lib/present";
 import type { FundReport } from "@/lib/report-types";
 import type { Point } from "@/lib/returns";
 import { peerStanding } from "@/lib/status";
@@ -31,6 +31,7 @@ export default function FundCard({ fund, prices }: { fund: FundReport; prices: P
   const standing = peerStanding(c.gapVsCategory.month, c.peersUsed);
   const rows = comparisonRows(c);
   const spark = prices.slice(-130);
+  const latest = latestPrice(prices, fund.nav, fund.asOf);
   const looseTracking = c.benchmarkName ? BENCHMARKS[c.benchmarkName]?.trackingAllowance ?? 0 : 0;
   return (
     <article className="themed relative rounded-2xl border border-line bg-card p-5 shadow-card transition-colors hover:border-line-strong sm:p-6">
@@ -59,12 +60,18 @@ export default function FundCard({ fund, prices }: { fund: FundReport; prices: P
         <div>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs text-ink-3"><Term k="nav">Price (NAV)</Term> as of {fmtDate(fund.asOf, false)}</p>
-              <p className="text-2xl font-extrabold tabular-nums tracking-tight">{fmtNav(fund.nav)}</p>
+              <p className="text-xs text-ink-3"><Term k="nav">Price (NAV)</Term> as of {fmtDate(latest?.date ?? fund.asOf, false)}{latest ? " (latest)" : ""}</p>
+              <p className="text-2xl font-extrabold tabular-nums tracking-tight">{fmtNav(latest?.nav ?? fund.nav)}</p>
+              {latest && latest.sinceReportPct !== null && (
+                <p className="text-xs text-ink-3">
+                  <span className={`font-semibold ${toneClass(latest.sinceReportPct)}`}>{fmtPct(latest.sinceReportPct)}</span> since the check-up on {fmtDate(fund.asOf, false)}
+                </p>
+              )}
             </div>
             <Sparkline points={spark} />
           </div>
-          <div className="mt-3 grid grid-cols-3 gap-2">
+          <p className="mt-3 text-[11px] text-ink-3">Check-up figures as of {fmtDate(fund.asOf, false)} (refreshed every Saturday)</p>
+          <div className="mt-1.5 grid grid-cols-3 gap-2">
             <Stat label="This week" value={c.fund.week} />
             <Stat label="Last month" value={c.fund.month} />
             <Stat label={<Term k="ytd">Year so far</Term>} value={c.fund.ytd} />

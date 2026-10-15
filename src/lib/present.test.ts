@@ -48,3 +48,18 @@ describe("comparisonRows", () => {
     expect(comparisonRows(base({ peersRequested: 0, peersUsed: 0 })).map((x) => x.key)).toEqual(["index"]);
   });
 });
+
+import { latestPrice } from "./present";
+describe("latestPrice", () => {
+  const prices = [{ date: "2026-10-09", value: 100 }, { date: "2026-10-13", value: 101 }, { date: "2026-10-14", value: 102 }];
+  it("returns the newest saved price and the move since the report", () => {
+    const r = latestPrice(prices, 100, "2026-10-09")!;
+    expect(r.date).toBe("2026-10-14");
+    expect(r.nav).toBe(102);
+    expect(r.sinceReportPct).toBeCloseTo(2, 5);
+  });
+  it("returns null when nothing is newer than the report", () => {
+    expect(latestPrice(prices, 102, "2026-10-14")).toBeNull();
+    expect(latestPrice([], 100, "2026-10-09")).toBeNull();
+  });
+});

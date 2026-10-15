@@ -60,7 +60,9 @@ async function Dashboard() {
     Promise.all(funds.map((f) => getNavSeries(f.schemeCode, 200).catch(() => []))),
     getSnapshots().catch(() => []),
   ]);
-  const dataAsOf = funds.map((f) => f.asOf).sort().pop() ?? report.weekEnding;
+  const reportAsOf = funds.map((f) => f.asOf).sort().pop() ?? report.weekEnding;
+  // The daily job keeps saving prices, so the newest saved price can be later than the Saturday report's.
+  const dataAsOf = [reportAsOf, ...priceSets.map((p) => p[p.length - 1]?.date ?? "")].sort().pop() ?? reportAsOf;
   const age = daysBetween(report.weekEnding, istToday());
   const today = istToday();
   const nextReport = weekEndingFor(today) === today ? today : addDays(weekEndingFor(today), 7);
@@ -72,7 +74,7 @@ async function Dashboard() {
           This is last week&apos;s report (week ending {fmtDate(report.weekEnding)}). A fresh one is made every Saturday morning.
         </p>
       )}
-      <VerdictBanner report={report} dataAsOf={dataAsOf} />
+      <VerdictBanner report={report} dataAsOf={dataAsOf} reportAsOf={reportAsOf} />
       <Link href="/report" className="themed flex items-center justify-between gap-3 rounded-2xl border border-line bg-card px-5 py-4 shadow-card hover:bg-card-2">
         <span>
           <span className="block text-[15px] font-bold">Read the full weekly report</span>

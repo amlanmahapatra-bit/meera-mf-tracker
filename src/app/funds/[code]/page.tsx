@@ -11,7 +11,7 @@ import StatusChip from "@/components/StatusChip";
 import Term from "@/components/Term";
 import { STATUS_RULES } from "@/lib/config";
 import { fmtDate, fmtNav, fmtPct } from "@/lib/format";
-import { shortName } from "@/lib/present";
+import { latestPrice, shortName } from "@/lib/present";
 import { getLatestReport, getNavSeries, getSnapshots } from "@/lib/queries";
 import { periodReturns } from "@/lib/periods";
 import PeriodTable from "@/components/PeriodTable";
@@ -59,6 +59,7 @@ async function Detail({ params }: { params: Promise<{ code: string }> }) {
 
   const [prices, snaps] = await Promise.all([getNavSeries(schemeCode, 20000).catch(() => []), getSnapshots().catch(() => [])]);
   const periods = periodReturns(prices);
+  const latest = latestPrice(prices, fund.nav, fund.asOf);
   const c = fund.comparison;
   const standing = peerStanding(c.gapVsCategory.month, c.peersUsed);
   const mine = snaps.filter((s) => s.schemeCode === schemeCode).sort((x, y) => (x.weekEnding < y.weekEnding ? 1 : -1));
@@ -78,8 +79,9 @@ async function Detail({ params }: { params: Promise<{ code: string }> }) {
         </div>
         <div className="mt-5 flex flex-wrap items-end gap-x-8 gap-y-3">
           <div>
-            <p className="text-xs text-ink-3"><Term k="nav">Price (NAV)</Term> as of {fmtDate(fund.asOf)}</p>
-            <p className="text-4xl font-extrabold tracking-tight tabular-nums">{fmtNav(fund.nav)}</p>
+            <p className="text-xs text-ink-3"><Term k="nav">Price (NAV)</Term> as of {fmtDate(latest?.date ?? fund.asOf)}{latest ? " (latest)" : ""}</p>
+            <p className="text-4xl font-extrabold tracking-tight tabular-nums">{fmtNav(latest?.nav ?? fund.nav)}</p>
+            {latest && latest.sinceReportPct !== null && <p className="mt-0.5 text-xs text-ink-3">{fmtPct(latest.sinceReportPct)} since the check-up on {fmtDate(fund.asOf)}</p>}
           </div>
           <div className="no-print flex flex-wrap items-center gap-2 text-sm">
             <span className="text-ink-3">Optional:</span>
